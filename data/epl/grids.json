@@ -1168,5 +1168,18 @@
 "abroad:Q148",
 "pos:df"
 ]
+},
+"2027-01-06": {
+"cols": [
+"club:Q18656",
+"club:Q5794",
+"club:Q18711"
+],
+"n": 91,
+"rows": [
+"abroad:Q34",
+"abroad:Q45",
+"nat:Q21"
+]
 }
 }
