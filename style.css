@@ -81,7 +81,9 @@ html[dir="rtl"] .title { direction: rtl; }
   font-family: var(--display);
   font-weight: 800;
   font-size: clamp(1.32rem, 5.2vw, 2.4rem);
-  line-height: 1.05;
+  line-height: 1.35;        /* room for Arabic dots and tall letters: overflow below would clip them */
+  padding: .08em .1em;
+  margin: -.12em 0 -.1em;   /* keeps the masthead the same height as before */
   white-space: nowrap;      /* one line on every page, so both pages line up */
   overflow: hidden;
   text-overflow: ellipsis;
