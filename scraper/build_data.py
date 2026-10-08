@@ -76,6 +76,7 @@ COMMON_DEFAULTS = {
     "min_award": 6,
     "days_ahead": 90,
     "photo_sources": ["commons_category", "thesportsdb"],  # extra photo sources, in order
+    "badge_sources": ["wikidata", "thesportsdb"],  # club crest sources, in order
     "photo_retry_days": 30,      # how long before re-checking a player with no photo
     "photo_lookup_limit": 2000,  # max new photo lookups per run (most famous first)
     "min_birth_year": None,      # ignore players born before this year
@@ -422,10 +423,18 @@ def local_photo(pid):
     return None
 
 
+def local_badge(qid_):
+    """A crest you add yourself: badges/<QID>.png (or .svg / .webp / .jpg) overrides everything."""
+    for ext in ("png", "svg", "webp", "jpg"):
+        if os.path.exists(os.path.join(ROOT, "badges", f"{qid_}.{ext}")):
+            return f"badges/{qid_}.{ext}"
+    return None
+
+
 def fetch_items(raw, ids):
     for batch in chunks(sorted(ids), 200):
         rows = try_query("items", f"""
-            SELECT ?i ?en ?ar ?arz ?c ?t ?flag ?hex WHERE {{
+            SELECT ?i ?en ?ar ?arz ?c ?t ?flag ?hex ?logo WHERE {{
               VALUES ?i {{ {values(batch)} }}
               OPTIONAL {{ ?i rdfs:label ?en FILTER(lang(?en)="en") }}
               OPTIONAL {{ ?i rdfs:label ?ar FILTER(lang(?ar)="ar") }}
@@ -434,6 +443,7 @@ def fetch_items(raw, ids):
               OPTIONAL {{ ?i wdt:P31 ?t }}
               OPTIONAL {{ ?i wdt:P41 ?flag }}
               OPTIONAL {{ ?i wdt:P6364 ?col . ?col wdt:P465 ?hex }}
+              OPTIONAL {{ ?i wdt:P154 ?logo }}
             }}""")
         for r in rows:
             i = raw["items"].setdefault(qid(r["i"]), {"en": None, "ar": None, "country": [], "types": []})
@@ -443,6 +453,8 @@ def fetch_items(raw, ids):
                 i["country"].append(qid(r["c"]))
             if "t" in r and qid(r["t"]) not in i["types"]:
                 i["types"].append(qid(r["t"]))
+            if val(r, "logo") and not i.get("logo"):
+                i["logo"] = urllib.parse.unquote(val(r, "logo").rsplit("/", 1)[-1])
             if val(r, "flag") and not i.get("flag"):
                 i["flag"] = urllib.parse.unquote(val(r, "flag").rsplit("/", 1)[-1])
             hexv = (val(r, "hex") or "").lstrip("#").upper()
@@ -573,6 +585,11 @@ def build_data(raw, cfg):
             colors = (items.get(ref) or {}).get("colors") or []
             if colors:
                 out["c"] = colors[:2]
+            badge = local_badge(ref)
+            if not badge and "wikidata" in cfg.get("badge_sources", []):
+                badge = (items.get(ref) or {}).get("logo") or ""
+            if badge:
+                out["b"] = badge
             if typ == "fclub":
                 countries = (items.get(ref) or {}).get("country") or []
                 out["f"] = flag_of(countries[0]) if countries else ""
@@ -873,6 +890,88 @@ def fill_extra_photos(data, raw, cfg, out_dir, live):
         f"Players with a photo: {have}/{len(data['players'])}")
 
 
+# ---------------------------------------------------------------- club crests
+
+SPORTSDB_TEAMS = "https://www.thesportsdb.com/api/v1/json/123/searchteams.php"
+# TheSportsDB country names for Wikidata countries that differ
+COUNTRY_ALIASES = {"United Kingdom": {"England", "Wales", "Scotland", "Northern Ireland"},
+                   "People's Republic of China": {"China"}, "United States": {"USA"},
+                   "Kingdom of the Netherlands": {"Netherlands"}, "Republic of Ireland": {"Ireland"}}
+
+
+def team_names(name):
+    """Name variants to search: 'Manchester United F.C.' -> 'Manchester United F.C.', 'Manchester United'."""
+    out = [name]
+    short = re.sub(r"\s*\(.*?\)\s*", " ", name).strip()
+    short = re.sub(r"\s+(A\.?\s?F\.?\s?C\.?|F\.?\s?C\.?|C\.?\s?F\.?|S\.?\s?C\.?)$", "", short).strip()
+    short = re.sub(r"^(A\.?F\.?C\.?|F\.?C\.?)\s+", "", short).strip()
+    if short and short not in out:
+        out.append(short)
+    return out
+
+
+def sportsdb_badge(name_en, country_en):
+    """Crest from TheSportsDB: a football team with the same name in the same country.
+    Returns None when the lookup failed (retried next run)."""
+    if not name_en:
+        return ""
+    countries = {country_en} | COUNTRY_ALIASES.get(country_en, set()) if country_en else set()
+    for variant in team_names(name_en):
+        data = http_json(SPORTSDB_TEAMS + "?" + urllib.parse.urlencode({"t": variant.replace(" ", "_")}), pause=2.1)
+        if data is None:
+            return None
+        teams = [t for t in (data.get("teams") or []) if t.get("strSport") == "Soccer" and t.get("strBadge")]
+        if countries:
+            teams = [t for t in teams if t.get("strCountry") in countries]
+        want = simple_name(variant)
+        exact = [t for t in teams if simple_name(t.get("strTeam")) == want
+                 or want in [simple_name(a) for a in (t.get("strTeamAlternate") or "").split(",")]]
+        pick = exact[0] if len(exact) >= 1 else (teams[0] if len(teams) == 1 else None)
+        if pick:
+            return pick["strBadge"] + "/small"
+    return ""
+
+
+def fill_badges(data, raw, cfg, out_dir, live):
+    """Add TheSportsDB crests to club criteria that still have none. Cached in badge_cache.json."""
+    if "thesportsdb" not in cfg.get("badge_sources", []):
+        return
+    path = os.path.join(out_dir, "badge_cache.json")
+    try:
+        with open(path, encoding="utf-8") as f:
+            cache = json.load(f)
+    except (OSError, ValueError):
+        cache = {}
+    today = dt.date.today()
+    retry = dt.timedelta(days=cfg.get("photo_retry_days", 30))
+    items = raw.get("items", {}) if raw else {}
+    looked_up = found = 0
+    for cid, c in data["criteria"].items():
+        if c["t"] not in ("club", "fclub") or c.get("b"):
+            continue
+        q = cid.split(":", 1)[1]
+        hit = cache.get(q)
+        fresh = hit and (hit.get("u") or dt.date.fromisoformat(hit["t"]) + retry > today)
+        if not fresh and live:
+            it = items.get(q, {})
+            country = (items.get((it.get("country") or [""])[0]) or {}).get("en") or ""
+            url = sportsdb_badge(it.get("en"), country)
+            if url is None:
+                continue
+            hit = {"u": url, "t": today.isoformat()}
+            cache[q] = hit
+            looked_up += 1
+            found += bool(url)
+        if hit and hit.get("u"):
+            c["b"] = hit["u"]
+    os.makedirs(out_dir, exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(cache, f, ensure_ascii=False, sort_keys=True, indent=0)
+    clubs = [c for c in data["criteria"].values() if c["t"] in ("club", "fclub")]
+    log(f"Crests: looked up {looked_up}, found {found}. Clubs with a crest: "
+        f"{sum(1 for c in clubs if c.get('b'))}/{len(clubs)}")
+
+
 # ---------------------------------------------------------------- main
 
 def load_config():
@@ -908,6 +1007,7 @@ def run_league(name, cfg, args):
         log(f"Too few players for {name} - keeping the old data (Wikidata problem?)")
         return False
     fill_extra_photos(data, raw, cfg, out_dir, live=not args.raw_in)
+    fill_badges(data, raw, cfg, out_dir, live=not args.raw_in)
 
     os.makedirs(out_dir, exist_ok=True)
     grids_path = os.path.join(out_dir, "grids.json")

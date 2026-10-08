@@ -77,6 +77,17 @@ Sources 4–5 are looked up once per player and cached in `data/photo_cache.json
 
 Players with none show the first letter of their name.
 
+## Club crests
+
+Each club's crest comes from the first of these that exists:
+1. `badges/<QID>.png` (or .svg/.webp/.jpg) that you add yourself — see `badges/README.md`
+2. The club's logo on Wikidata
+3. [TheSportsDB](https://www.thesportsdb.com), accepted only for a football club with the same name in the same country
+
+Clubs with none (or whose image fails to load) show a shield in the club's colours with its initials.
+TheSportsDB lookups are cached in `badge_cache.json`. Club crests are trademarks: before adding ads or
+publishing an app, remove `"thesportsdb"` from `badge_sources` in `config.json` (per league).
+
 ## Rarity
 
 Players are ranked by how many Wikipedia language editions have an article on them (a proxy for fame).

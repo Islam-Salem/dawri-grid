@@ -249,6 +249,21 @@
     if (words.length >= 2) return (words[0][0] + words[1][0]).toUpperCase();
     return clean.slice(0, 3).toUpperCase();
   }
+  // Generated shield in the club's colours with its initials (used when no crest is available).
+  function crestHtml(label, colors, corner = "") {
+    const cols = (colors || []).map((x) => "#" + x);
+    const c1 = cols[0] || hashColor(label), c2 = cols[1] || c1;
+    const ink = isLight(c1) ? "#14213D" : "#fff";
+    return `<span class="badge crest" style="--c1:${c1};--c2:${c2};--mono:${ink}"><span>${esc(monogram(label))}</span>${corner}</span>`;
+  }
+
+  // A file from Commons (bare file name), a full URL, or a file in this repo (photos/, badges/).
+  function assetUrl(file, width) {
+    if (/^https?:/.test(file)) return file;
+    if (/^(photos|badges)\//.test(file)) return GAME.root + file;
+    return commons(file, width);
+  }
+
   function flagImg(file, extraClass = "") {
     return `<img class="flag ${extraClass}" alt="" loading="lazy" referrerpolicy="no-referrer" src="${commons(file, 80)}">`;
   }
@@ -256,11 +271,12 @@
     switch (c.t) {
       case "club":
       case "fclub": {
-        const cols = (c.c || []).map((x) => "#" + x);
-        const c1 = cols[0] || hashColor(c.l), c2 = cols[1] || c1;
-        const ink = isLight(c1) ? "#14213D" : "#fff";
         const corner = c.t === "fclub" && c.f ? flagImg(c.f, "corner") : "";
-        return `<span class="badge crest" style="--c1:${c1};--c2:${c2};--mono:${ink}"><span>${esc(monogram(c.l))}</span>${corner}</span>`;
+        if (c.b) {
+          // the club's real crest; if it fails to load, the generated shield replaces it
+          return `<span class="badge logo" data-crest="${esc(JSON.stringify({ l: c.l, c: c.c || [] }))}"><img class="club-logo" alt="" loading="lazy" referrerpolicy="no-referrer" src="${esc(assetUrl(c.b, 96))}">${corner}</span>`;
+        }
+        return crestHtml(c.l, c.c, corner);
       }
       case "nat":
       case "abroad":
@@ -285,9 +301,7 @@
     const name = players[p][1] || "?";
     const letter = esc(GAME.lang === "ar" ? name.replace(/^ال/, "").charAt(0) : name.charAt(0));
     if (!file) return `<span class="${cls} ini">${letter}</span>`;
-    const src = /^https?:/.test(file) ? file
-      : /^photos\//.test(file) ? GAME.root + file
-      : commons(file, size);
+    const src = assetUrl(file, size);
     return `<img class="${cls}" loading="lazy" alt="" referrerpolicy="no-referrer" data-letter="${letter}" src="${esc(src)}">`;
   }
 
@@ -672,6 +686,16 @@
     document.addEventListener("error", (e) => {
       const img = e.target;
       if (img.tagName !== "IMG") return;
+      if (img.classList.contains("club-logo")) {
+        const box = img.closest(".badge");
+        let info = {};
+        try { info = JSON.parse(box.dataset.crest || "{}"); } catch (err) { /* ignore */ }
+        const corner = box.querySelector(".flag.corner");
+        const tmp = document.createElement("span");
+        tmp.innerHTML = crestHtml(info.l || "?", info.c, corner ? corner.outerHTML : "");
+        box.replaceWith(tmp.firstElementChild);
+        return;
+      }
       if (img.classList.contains("flag")) {
         if (img.classList.contains("corner")) { img.remove(); return; }
         const box = img.closest(".badge");
