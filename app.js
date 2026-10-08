@@ -46,7 +46,7 @@
       tapCell: "اضغط على أي خانة لرؤية كل الإجابات الصحيحة.",
       answersCount: (k) => `${k} إجابة صحيحة`,
       more: (k) => `و${k} آخرين`,
-      topAnswer: "الأشهر",
+      topAnswer: "",
       yourAnswer: "إجابتك",
       archiveEmpty: "لا توجد شبكات سابقة بعد.",
       archiveDone: (n) => `${n}/9`,
@@ -94,7 +94,7 @@
       tapCell: "Tap any square to see every correct answer.",
       answersCount: (k) => `${k} correct ${k === 1 ? "answer" : "answers"}`,
       more: (k) => `and ${k} more`,
-      topAnswer: "Most popular",
+      topAnswer: "",
       yourAnswer: "Your answer",
       archiveEmpty: "No past grids yet.",
       archiveDone: (n) => `${n}/9`,
@@ -449,10 +449,10 @@
       // game over: an unsolved square shows its most famous correct answer
       const top = state.over ? revealed()[i] : undefined;
       if (top !== undefined) {
-        return `<button class="sticker revealed" data-i="${i}" aria-label="${esc(label + ": " + players[top][1] + " (" + T.topAnswer + ")")}">
+        return `<button class="sticker revealed" data-i="${i}" aria-label="${esc(label + ": " + players[top][1] + (T.topAnswer ? " (" + T.topAnswer + ")" : ""))}">
       <span class="sticker-photo">${photoHtml(top, 240)}</span>
       <span class="sticker-name">${esc(players[top][1])}</span>
-      <span class="sticker-tag">${T.topAnswer}</span>
+      ${T.topAnswer ? `<span class="sticker-tag">${T.topAnswer}</span>` : ""}
     </button>`;
       }
       return `<button class="slot${state.over ? " over" : ""}" data-i="${i}" aria-label="${esc(label)}"><span class="slot-mark" aria-hidden="true">${state.over ? "?" : "+"}</span></button>`;
@@ -682,7 +682,7 @@
     $("#answers-list").innerHTML = ans.map((p) => {
       const [, name, en, , , year] = players[p];
       const sub = [
-        p === mine ? `<b class="tag-mine">${T.yourAnswer}</b>` : p === shownTop ? `<b class="tag-top">${T.topAnswer}</b>` : "",
+        p === mine ? `<b class="tag-mine">${T.yourAnswer}</b>` : p === shownTop && T.topAnswer ? `<b class="tag-top">${T.topAnswer}</b>` : "",
         en && en !== name ? esc(en) : "", year ? T.born(year) : "",
       ].filter(Boolean).join(" · ");
       return `<li class="${p === mine ? "mine" : ""}">${photoHtml(p, 80)}<span class="who"><span class="who-name">${esc(name)}</span><span class="who-sub">${sub}</span></span><span class="who-rar">${rarity(i, p)}</span></li>`;
