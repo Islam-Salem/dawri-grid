@@ -1,15 +1,15 @@
 {
 "2026-10-08": {
 "cols": [
-"club:Q223566",
 "club:Q1329368",
-"abroad:Q43"
+"club:Q286504",
+"club:Q223566"
 ],
 "n": 1,
 "rows": [
-"pos:mf",
-"club:Q286504",
-"abroad:Q851"
+"abroad:Q41",
+"abroad:Q846",
+"pos:mf"
 ]
 },
 "2026-10-09": {
@@ -1167,19 +1167,6 @@
 "abroad:Q851",
 "nat:Q1033",
 "abroad:Q878"
-]
-},
-"2027-01-06": {
-"cols": [
-"club:Q286490",
-"club:Q223566",
-"club:Q286504"
-],
-"n": 91,
-"rows": [
-"pos:gk",
-"nt:home",
-"abroad:Q851"
 ]
 }
 }

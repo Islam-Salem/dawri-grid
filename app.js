@@ -196,17 +196,29 @@
     const s = store.get(keyFor(d));
     if (!s || !s.cells) return null;
     const cells = {};
+    let lost = false;
     for (const [i, v] of Object.entries(s.cells)) {
       const p = typeof v === "number" ? v : byId[v]; // numbers: saved by an older version
       if (p !== undefined && players[p]) cells[i] = p;
+      else lost = true;
     }
-    return { cells, guesses: s.guesses ?? TOTAL_GUESSES, over: !!s.over };
+    return { cells, guesses: s.guesses ?? TOTAL_GUESSES, over: !!s.over, grid: s.grid, lost };
   }
-  function load() { state = readSaved(date) || { cells: {}, guesses: TOTAL_GUESSES, over: false }; }
+  const gridId = () => grid.rows.concat(grid.cols).join("|");
+  function load() {
+    const fresh = { cells: {}, guesses: TOTAL_GUESSES, over: false };
+    const s = readSaved(date);
+    if (!s) { state = fresh; return; }
+    // a saved game belongs to one grid: if that day's grid was replaced, start again
+    const sameGrid = s.grid ? s.grid === gridId()
+      : !s.lost && Object.entries(s.cells).every(([i, p]) => sets[rowOf(+i)].has(p) && sets[colOf(+i)].has(p))
+        && (Object.keys(s.cells).length > 0 || s.guesses === TOTAL_GUESSES);
+    state = sameGrid ? { cells: s.cells, guesses: s.guesses, over: s.over } : fresh;
+  }
   function save() {
     const cells = {};
     for (const [i, p] of Object.entries(state.cells)) cells[i] = players[p][0];
-    store.set(keyFor(date), { cells, guesses: state.guesses, over: state.over });
+    store.set(keyFor(date), { cells, guesses: state.guesses, over: state.over, grid: gridId() });
   }
 
   const rowOf = (i) => grid.rows[Math.floor(i / 3)];
