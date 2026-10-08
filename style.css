@@ -61,25 +61,30 @@ svg { display: block; }
 /* ---------------------------------------------------------------- masthead */
 .masthead {
   width: 100%;
-  max-width: 1040px;
+  max-width: 640px;
   margin: 0 auto;
   padding: 14px 16px 4px;
 }
 .mast-row {
   direction: ltr;           /* identical on the Arabic and English pages */
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  /* equal sides keep the title exactly centred (room for two icon buttons each side) */
+  grid-template-columns: minmax(92px, 1fr) minmax(0, auto) minmax(92px, 1fr);
   align-items: center;
   gap: 12px;
 }
+.mast-row > .icon-btn { justify-self: start; }
 .title { text-align: center; min-width: 0; direction: inherit; }
 html[dir="rtl"] .title { direction: rtl; }
 .title h1 {
   margin: 0;
   font-family: var(--display);
   font-weight: 800;
-  font-size: clamp(1.55rem, 5.2vw, 2.4rem);
+  font-size: clamp(1.32rem, 5.2vw, 2.4rem);
   line-height: 1.05;
+  white-space: nowrap;      /* one line on every page, so both pages line up */
+  overflow: hidden;
+  text-overflow: ellipsis;
   letter-spacing: 0;
   text-shadow: 0 2px 0 rgba(0, 0, 0, .25);
 }
@@ -88,7 +93,7 @@ html[dir="rtl"] .title { direction: rtl; }
   font-size: .86rem;
   color: var(--ink-soft);
 }
-.mast-actions { display: flex; gap: 8px; }
+.mast-actions { display: flex; gap: 8px; justify-self: end; }
 
 .icon-btn {
   width: 42px; height: 42px;
@@ -153,13 +158,14 @@ html[dir="rtl"] .title { direction: rtl; }
 }
 
 /* ---------------------------------------------------------------- grid */
-.album { width: 100%; max-width: 620px; margin: 0 auto; }
+.album { width: 100%; max-width: 480px; margin: 0 auto; }
 .grid {
   display: grid;
   grid-template-columns: minmax(76px, .85fr) repeat(3, minmax(0, 1fr));
   gap: 8px;
 }
 .corner { min-height: 0; }
+.spacer { display: none; }
 
 .hdr {
   display: flex;
@@ -170,9 +176,9 @@ html[dir="rtl"] .title { direction: rtl; }
 }
 .hdr.col {
   flex-direction: column;
-  justify-content: flex-end;
+  justify-content: flex-start;   /* every badge starts on the same line */
   text-align: center;
-  padding: 0 2px 4px;
+  padding: 0 2px 6px;
 }
 .hdr.row {
   flex-direction: column;
@@ -207,6 +213,12 @@ html[dir="rtl"] .title { direction: rtl; }
   place-items: center;
   position: relative;
 }
+.hdr > .badge {
+  width: 48px;
+  height: 48px;            /* same box for shield, flag and icon */
+}
+.hdr > .badge.crest { width: 40px; height: 44px; margin: 2px 4px; }
+.hdr > .badge.icon { width: 48px; height: 48px; }
 .badge.crest {
   width: 40px; height: 44px;
   border-radius: 6px 6px 20px 20px;          /* shield */
@@ -349,7 +361,7 @@ html[dir="rtl"] .title { direction: rtl; }
 /* ---------------------------------------------------------------- panel */
 .panel {
   width: 100%;
-  max-width: 620px;
+  max-width: 480px;
   margin: 0 auto;
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -625,16 +637,22 @@ html[dir="rtl"] .title { direction: rtl; }
 /* ---------------------------------------------------------------- phones */
 @media (max-width: 600px) {
   .masthead { padding: 10px 12px 0; }
-  .mast-row { gap: 6px; }
-  .icon-btn { width: 38px; height: 38px; }
+  .mast-row { gap: 6px; grid-template-columns: 74px minmax(0, 1fr) 74px; }
+  .icon-btn { width: 34px; height: 34px; }
+  .icon-btn svg { width: 18px; height: 18px; }
   .mast-actions { gap: 6px; }
   .edition { font-size: .78rem; }
   /* one line on every page, so the league buttons sit at the same height */
-  .title h1 { font-size: 1.32rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .board { padding: 14px 8px 8px; gap: 14px; }
+  .title h1 { font-size: min(1.32rem, 4.9vw); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .board { padding: 12px 14px 8px; gap: 14px; }
+  .slot, .sticker { aspect-ratio: 1 / 1; }
+  .sticker-photo .ph.ini { font-size: 2rem; }
   .grid { gap: 6px; grid-template-columns: minmax(66px, .8fr) repeat(3, minmax(0, 1fr)); }
   .hdr-label { font-size: .78rem; }
   .badge.crest { width: 34px; height: 37px; }
+  .hdr > .badge { width: 40px; height: 40px; }
+  .hdr > .badge.crest { width: 34px; height: 37px; margin: 1px 3px; }
+  .hdr > .badge.icon { width: 40px; height: 40px; }
   .badge.crest > span { font-size: .82rem; }
   .badge.flagbox .flag { width: 38px; height: 26px; }
   .badge.icon, .badge.icon svg { width: 38px; height: 28px; }
@@ -654,25 +672,30 @@ html[dir="rtl"] .title { direction: rtl; }
   .stat b { font-size: 1.4rem; }
 }
 
-/* ---------------------------------------------------------------- desktop: grid beside a scoreboard */
+/* ---------------------------------------------------------------- desktop: centred grid, scoreboard beside it */
 @media (min-width: 900px) {
+  /* the scoreboard sits after the grid in reading order:
+     left of the grid on the Arabic page, right of it on the English page */
   .board {
-    grid-template-columns: minmax(0, 560px) 300px;
-    justify-content: center;
+    max-width: none;
+    grid-template-columns: 1fr minmax(0, 620px) 1fr;
     align-items: start;
-    gap: 40px;
-    padding-top: 26px;
+    gap: 32px;
+    padding-top: 22px;
   }
   .status { grid-column: 1 / -1; }
-  .album { margin: 0; }
+  .album { grid-column: 2; grid-row: 1; max-width: none; margin: 0; }
   .panel {
+    grid-column: 3;
+    grid-row: 1;
+    justify-self: start;
+    width: 260px;
     position: sticky;
     top: 24px;
-    margin: 0;
-    margin-top: 84px;
+    margin: 64px 0 0;
     grid-template-columns: 1fr;
-    gap: 18px;
-    padding: 22px;
+    gap: 16px;
+    padding: 20px;
     border-radius: 18px;
     background: rgba(0, 0, 0, .18);
     box-shadow: inset 0 0 0 1.5px var(--slot-line);
@@ -680,11 +703,24 @@ html[dir="rtl"] .title { direction: rtl; }
   .rarity { text-align: start; }
   .actions { flex-direction: column; }
   .actions .btn { width: 100%; }
-  .album { max-width: 560px; }
-  .grid { gap: 12px; }
-  .slot, .sticker { aspect-ratio: 5 / 6; }
-  .hdr-label { font-size: 1rem; }
-  .sticker-name { font-size: .9rem; }
+  .grid { gap: 10px; }
+  .slot, .sticker { aspect-ratio: 1 / 1; }
+  .hdr-label { font-size: .95rem; }
+  .sticker-name { font-size: .85rem; }
+}
+
+/* between phone and desktop: everything in one centred column */
+@media (min-width: 601px) and (max-width: 899px) {
+  .board { max-width: 600px; }
+  .album { max-width: none; }
+  .slot, .sticker { aspect-ratio: 1 / 1; }
+}
+
+/* tablet and desktop: header column on one side, matching empty column on the other,
+   so the 3x3 squares sit exactly under the page title */
+@media (min-width: 601px) {
+  .grid { grid-template-columns: 96px repeat(3, minmax(0, 1fr)) 96px; }
+  .spacer { display: block; }
 }
 
 @media (prefers-reduced-motion: reduce) {

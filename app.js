@@ -14,8 +14,8 @@
   );
   const TOTAL_GUESSES = 9;
   const LEAGUES = [
-    { id: "egypt", href: "./", label: "الدوري المصري", lang: "ar" },
     { id: "epl", href: "epl.html", label: "Premier League", lang: "en" },
+    { id: "egypt", href: "./", label: "الدوري المصري", lang: "ar" },
   ];
 
   // ---------------------------------------------------------------- text
@@ -408,11 +408,16 @@
   }
 
   function render() {
+    // an empty column after the squares, as wide as the row headers, keeps the
+    // 3x3 squares centred under the page title on wider screens
+    const spacer = `<div class="spacer" aria-hidden="true"></div>`;
     let html = `<div class="corner" aria-hidden="true"></div>`;
     grid.cols.forEach((c) => { html += headerHtml(c, "col"); });
+    html += spacer;
     for (let r = 0; r < 3; r++) {
       html += headerHtml(grid.rows[r], "row");
       for (let c = 0; c < 3; c++) html += cellHtml(r * 3 + c);
+      html += spacer;
     }
     $("#grid").innerHTML = html;
     lastPlaced = null;
