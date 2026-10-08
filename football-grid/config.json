@@ -1,0 +1,59 @@
+{
+  "egypt": {
+    "exclude": [],
+    "labels": {
+      "club:Q223566": "الأهلي",
+      "abroad:Q145": "لعب في بريطانيا",
+      "abroad:Q878": "لعب في الإمارات",
+      "fclub:Q44897": "الترجي (تونس)",
+      "fclub:Q1024482": "الصفاقسي (تونس)",
+      "fclub:Q1051514": "الرجاء (المغرب)",
+      "fclub:Q1139095": "الوداد (المغرب)",
+      "fclub:Q1828020": "النصر (ليبيا)",
+      "fclub:Q1932104": "أهلي طرابلس (ليبيا)",
+      "fclub:Q429501": "الاتحاد (ليبيا)",
+      "club:Q16917208": "القناة"
+    },
+    "min_cell": 3,
+    "min_club": 10,
+    "min_foreign_club": 8,
+    "min_country": 8,
+    "min_abroad": 15,
+    "min_position": 8,
+    "min_award": 6,
+    "start_date": "2026-10-08",
+    "salt": "egypt-grid"
+  },
+  "epl": {
+    "exclude": [
+      "nat:Q145",
+      "nat:Q29999"
+    ],
+    "labels": {
+      "abroad:Q148": "Played in China",
+      "abroad:Q55": "Played in the Netherlands",
+      "abroad:Q30": "Played in the USA",
+      "nat:Q30": "USA",
+      "nat:Q148": "China",
+      "abroad:Q34": "Played in Sweden",
+      "fclub:Q8682": "Real Madrid (Spain)",
+      "fclub:Q131499": "Benfica (Portugal)",
+      "fclub:Q180305": "Monaco (France)",
+      "abroad:Q235": "Played in Monaco"
+    },
+    "min_birth_year": 1960,
+    "min_links": 2,
+    "min_cell": 4,
+    "min_club": 15,
+    "min_foreign_club": 20,
+    "min_country": 15,
+    "min_abroad": 25,
+    "min_award": 10,
+    "start_date": "2026-10-08",
+    "salt": "epl-grid",
+    "allow_awards": [
+      "award:Q106634956",
+      "award:Q1323117"
+    ]
+  }
+}
