@@ -84,9 +84,13 @@ Players with none show the first letter of their name.
 ## Club crests
 
 Each club's crest comes from the first of these that exists:
-1. `badges/<QID>.png` (or .svg/.webp/.jpg) that you add yourself — see `badges/README.md`
-2. The club's logo on Wikidata
-3. [TheSportsDB](https://www.thesportsdb.com), accepted only for a football club with the same name in the same country
+1. `badges/<QID>.png` (or .svg/.webp/.jpg) that you add yourself — see `badges/README.md`,
+   or an entry in `config.json` → `"badges": {"club:Q123": "Commons file name or https link"}`
+2. [TheSportsDB](https://www.thesportsdb.com), accepted only for a football club with the same name in the same country
+3. The club's logo on Wikidata, only when the file looks like a crest (Wikidata sometimes lists a
+   wordmark or even a photo as the logo)
+
+The order of 2 and 3 follows `badge_sources` in `config.json`.
 
 Clubs with none (or whose image fails to load) show a shield in the club's colours with its initials.
 TheSportsDB lookups are cached in `badge_cache.json`. Club crests are trademarks: before adding ads or

@@ -76,7 +76,7 @@ COMMON_DEFAULTS = {
     "min_award": 6,
     "days_ahead": 90,
     "photo_sources": ["commons_category", "thesportsdb"],  # extra photo sources, in order
-    "badge_sources": ["wikidata", "thesportsdb"],  # club crest sources, in order
+    "badge_sources": ["thesportsdb", "wikidata"],  # club crest sources, in order
     "photo_retry_days": 30,      # how long before re-checking a player with no photo
     "photo_lookup_limit": 2000,  # max new photo lookups per run (most famous first)
     "min_birth_year": None,      # ignore players born before this year
@@ -591,10 +591,13 @@ def build_data(raw, cfg):
             if colors:
                 out["c"] = colors[:2]
             badge = local_badge(ref)
-            if not badge and "wikidata" in cfg.get("badge_sources", []):
-                badge = (items.get(ref) or {}).get("logo") or ""
             if badge:
                 out["b"] = badge
+            elif "wikidata" in cfg.get("badge_sources", []):
+                # kept aside: fill_badges decides between it and TheSportsDB by badge_sources order
+                wd = (items.get(ref) or {}).get("logo") or ""
+                if wd:
+                    out["wb"] = wd
             if typ == "fclub":
                 countries = (items.get(ref) or {}).get("country") or []
                 out["f"] = flag_of(countries[0]) if countries else ""
@@ -994,10 +997,23 @@ def sportsdb_badge(name_en, country_en):
     return ""
 
 
+LOGO_FILE = re.compile(r"logo|crest|badge|emblem|escudo|wappen|شعار", re.I)
+WORDMARK = re.compile(r"wordmark|text|word[_ ]mark", re.I)
+
+
+def wikidata_logo_ok(name):
+    """Wikidata's 'logo' is sometimes a wordmark (Liverpool's L.F.C.) or even a photo:
+    accept only files that look like a crest."""
+    if not name or WORDMARK.search(name):
+        return False
+    return name.lower().endswith(".svg") or bool(LOGO_FILE.search(name))
+
+
 def fill_badges(data, raw, cfg, out_dir, live):
-    """Add TheSportsDB crests to club criteria that still have none. Cached in badge_cache.json."""
-    if "thesportsdb" not in cfg.get("badge_sources", []):
-        return
+    """Pick each club's crest by badge_sources order (default: TheSportsDB, then Wikidata).
+    A crest in badges/<QID>.* always wins. TheSportsDB lookups are cached in badge_cache.json."""
+    sources = cfg.get("badge_sources", [])
+    overrides = cfg.get("badges", {})
     path = os.path.join(out_dir, "badge_cache.json")
     try:
         with open(path, encoding="utf-8") as f:
@@ -1008,9 +1024,9 @@ def fill_badges(data, raw, cfg, out_dir, live):
     retry = dt.timedelta(days=cfg.get("photo_retry_days", 30))
     items = raw.get("items", {}) if raw else {}
     looked_up = found = 0
-    for cid, c in data["criteria"].items():
-        if c["t"] not in ("club", "fclub") or c.get("b"):
-            continue
+
+    def sportsdb(cid):
+        nonlocal looked_up, found
         q = cid.split(":", 1)[1]
         hit = cache.get(q)
         fresh = hit and (hit.get("u") or dt.date.fromisoformat(hit["t"]) + retry > today)
@@ -1019,16 +1035,38 @@ def fill_badges(data, raw, cfg, out_dir, live):
             country = (items.get((it.get("country") or [""])[0]) or {}).get("en") or ""
             url = sportsdb_badge(it.get("en"), country)
             if url is None:
-                continue
+                return ""
             hit = {"u": url, "t": today.isoformat()}
             cache[q] = hit
             looked_up += 1
             found += bool(url)
-        if hit and hit.get("u"):
-            c["b"] = hit["u"]
-    os.makedirs(out_dir, exist_ok=True)
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(cache, f, ensure_ascii=False, sort_keys=True, indent=0)
+        return (hit or {}).get("u") or ""
+
+    for cid, c in data["criteria"].items():
+        if c["t"] not in ("club", "fclub"):
+            continue
+        wd = c.pop("wb", "")
+        if cid in overrides:          # config.json "badges": {"club:Q…": "Commons file name or https URL"}
+            c["b"] = overrides[cid]
+            continue
+        if c.get("b", "").startswith("badges/"):
+            continue                  # your own file
+        pick = ""
+        for src in sources:
+            if src == "thesportsdb":
+                pick = sportsdb(cid)
+            elif src == "wikidata" and wikidata_logo_ok(wd):
+                pick = wd
+            if pick:
+                break
+        if pick:
+            c["b"] = pick
+        else:
+            c.pop("b", None)
+    if "thesportsdb" in sources:
+        os.makedirs(out_dir, exist_ok=True)
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(cache, f, ensure_ascii=False, sort_keys=True, indent=0)
     clubs = [c for c in data["criteria"].values() if c["t"] in ("club", "fclub")]
     log(f"Crests: looked up {looked_up}, found {found}. Clubs with a crest: "
         f"{sum(1 for c in clubs if c.get('b'))}/{len(clubs)}")

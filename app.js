@@ -423,12 +423,31 @@
   // ---------------------------------------------------------------- render
   const TILT = [-2.2, 1.4, -0.8, 1.9, -1.6, 0.9, -2.6, 1.7, -0.6];
 
+  // After the game: the most famous answer for each unsolved square, without
+  // repeating a player (squares with the fewest answers choose first).
+  let revealCache = null;
+  function revealed() {
+    const key = gridId() + JSON.stringify(state.cells);
+    if (revealCache && revealCache.key === key) return revealCache.map;
+    const taken = new Set(Object.values(state.cells));
+    const open = [...Array(9).keys()].filter((i) => state.cells[i] === undefined)
+      .map((i) => [i, answersFor(i)]).sort((a, b) => a[1].length - b[1].length);
+    const map = {};
+    for (const [i, ans] of open) {
+      const p = ans.find((x) => !taken.has(x));
+      map[i] = p !== undefined ? p : ans[0];
+      taken.add(map[i]);
+    }
+    revealCache = { key, map };
+    return map;
+  }
+
   function cellHtml(i) {
     const p = state.cells[i];
     const label = crit[rowOf(i)].l + T.and + crit[colOf(i)].l;
     if (p === undefined) {
       // game over: an unsolved square shows its most famous correct answer
-      const top = state.over ? answersFor(i)[0] : undefined;
+      const top = state.over ? revealed()[i] : undefined;
       if (top !== undefined) {
         return `<button class="sticker revealed" data-i="${i}" aria-label="${esc(label + ": " + players[top][1] + " (" + T.topAnswer + ")")}">
       <span class="sticker-photo">${photoHtml(top, 240)}</span>
@@ -656,13 +675,14 @@
   function showAnswers(i) {
     const ans = answersFor(i);
     const mine = state.cells[i];
+    const shownTop = mine === undefined ? revealed()[i] : undefined;
     $("#answers-q").innerHTML = pairHtml(i);
     $("#answers-count").textContent = T.answersCount(ans.length);
     // every correct answer, most famous first; yours is highlighted
-    $("#answers-list").innerHTML = ans.map((p, k) => {
+    $("#answers-list").innerHTML = ans.map((p) => {
       const [, name, en, , , year] = players[p];
       const sub = [
-        p === mine ? `<b class="tag-mine">${T.yourAnswer}</b>` : k === 0 ? `<b class="tag-top">${T.topAnswer}</b>` : "",
+        p === mine ? `<b class="tag-mine">${T.yourAnswer}</b>` : p === shownTop ? `<b class="tag-top">${T.topAnswer}</b>` : "",
         en && en !== name ? esc(en) : "", year ? T.born(year) : "",
       ].filter(Boolean).join(" · ");
       return `<li class="${p === mine ? "mine" : ""}">${photoHtml(p, 80)}<span class="who"><span class="who-name">${esc(name)}</span><span class="who-sub">${sub}</span></span><span class="who-rar">${rarity(i, p)}</span></li>`;
