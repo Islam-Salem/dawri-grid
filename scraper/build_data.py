@@ -41,7 +41,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CONFIG_PATH = os.path.join(ROOT, "config.json")
 
 ENDPOINT = "https://query.wikidata.org/sparql"
-USER_AGENT = "FootballGridGame/1.0 (fan-made football quiz; python-urllib)"
+USER_AGENT = "DawriGrid/1.1 (https://github.com/Islam-Salem/dawri-grid; fan-made football quiz) python-urllib"
 
 FEMALE = "Q6581072"
 FOOTBALLER = "Q937857"
@@ -91,6 +91,9 @@ COMMON_DEFAULTS = {
     "view_weights": {"ar": 2, "en": 1},  # Arabic page views count double (the game's audience)
     "view_months": 12,           # page views over this many past months
     "view_retry_days": 30,       # how long cached page views are kept
+    "view_minutes": 15,          # max time per run for page-view lookups (the rest next run)
+    "badge_minutes": 20,         # max time per run for TheSportsDB crest lookups
+    "photo_minutes": 25,         # max time per run for extra photo lookups
     "min_known_per_cell": 2,     # each square needs at least this many well-known answers
     # Difficulty by day of the week (Cairo), like the NYT crossword over a Saturday-to-Friday week:
     # easy Sat-Sun, medium Mon-Wed, hard Thu-Fri.
@@ -987,6 +990,7 @@ def fill_extra_photos(data, raw, cfg, out_dir, live):
     retry = dt.timedelta(days=cfg.get("photo_retry_days", 30))
     sources = cfg.get("photo_sources", [])
     limit = cfg.get("photo_lookup_limit", 2000)
+    budget = time.time() + 60 * cfg.get("photo_minutes", 25)   # the rest is looked up next run
     looked_up = found = 0
 
     def save():
@@ -1001,7 +1005,7 @@ def fill_extra_photos(data, raw, cfg, out_dir, live):
         hit = cache.get(pid)
         fresh = hit and (hit.get("u") or (hit.get("v") == PHOTO_LOGIC_VERSION
                                           and dt.date.fromisoformat(hit["t"]) + retry > today))
-        if not fresh and live and looked_up < limit:
+        if not fresh and live and looked_up < limit and time.time() < budget:
             d = raw["players"].get(pid, {})
             url = ""
             if "commons_category" in sources and d.get("cat"):
@@ -1071,21 +1075,28 @@ def sportsdb_badge(name_en, country_en):
 PAGEVIEWS = "https://wikimedia.org/api/rest_v1/metrics/pageviews/per-article/{wiki}.wikipedia/all-access/user/{title}/monthly/{start}/{end}"
 
 
+class Throttled(Exception):
+    pass
+
+
 def page_views(wiki, title, start, end):
-    """Total views of one Wikipedia article between two months. None = request failed."""
+    """Total views of one Wikipedia article between two months.
+    Returns None if the request failed; raises Throttled when Wikimedia says slow down."""
     url = PAGEVIEWS.format(wiki=wiki, title=urllib.parse.quote(title.replace(" ", "_"), safe=""),
                            start=start, end=end)
-    for attempt in range(3):
+    for attempt in range(2):
         try:
             req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-            with urllib.request.urlopen(req, timeout=30) as r:
+            with urllib.request.urlopen(req, timeout=20) as r:
                 return sum(int(i.get("views", 0)) for i in json.load(r).get("items", []))
         except urllib.error.HTTPError as e:
             if e.code == 404:          # no views recorded
                 return 0
-            time.sleep(30 if e.code == 429 else 3 * (attempt + 1))
+            if e.code in (403, 429):
+                raise Throttled(e.code)
+            time.sleep(2)
         except Exception:  # noqa: BLE001
-            time.sleep(3 * (attempt + 1))
+            time.sleep(2)
     return None
 
 
@@ -1126,23 +1137,34 @@ def rank_by_views(data, raw, cfg, out_dir, live):
             jobs.append((pid, titles))
 
     if jobs:
-        from concurrent.futures import ThreadPoolExecutor
-        log(f"Page views: looking up {len(jobs)} players...")
-
-        def work(job):
-            pid, titles = job
-            got = {w: page_views(w, t, start, end) for w, t in titles.items() if w in weights}
-            return pid, got
-
+        # Most-famous players first, a small pause between requests, a time limit, and a full
+        # stop if Wikimedia throttles us. Whatever is done is cached; the rest is done next run.
+        budget = time.time() + 60 * cfg.get("view_minutes", 15)
+        log(f"Page views: looking up {len(jobs)} players (max {cfg.get('view_minutes', 15)} min)...")
         done = failed = 0
-        with ThreadPoolExecutor(max_workers=6) as pool:
-            for pid, got in pool.map(work, jobs):
-                if any(v is None for v in got.values()):
-                    failed += 1          # retried next run
-                    continue
-                cache[pid] = {"v": got, "t": today.isoformat()}
-                done += 1
-        log(f"  page views: {done} looked up, {failed} failed")
+        stopped = ""
+        for pid, titles in jobs:
+            if time.time() > budget:
+                stopped = "time limit reached"
+                break
+            got = {}
+            try:
+                for w, t in titles.items():
+                    if w in weights:
+                        got[w] = page_views(w, t, start, end)
+                        time.sleep(0.05)
+            except Throttled as e:
+                stopped = f"Wikimedia asked us to slow down (HTTP {e})"
+                break
+            if any(v is None for v in got.values()):
+                failed += 1
+                if failed >= 50 and done < failed:
+                    stopped = "too many failed requests"
+                    break
+                continue
+            cache[pid] = {"v": got, "t": today.isoformat()}
+            done += 1
+        log(f"  page views: {done} looked up, {failed} failed" + (f"; stopped: {stopped}" if stopped else ""))
         os.makedirs(out_dir, exist_ok=True)
         with open(path, "w", encoding="utf-8") as f:
             json.dump(cache, f, ensure_ascii=False, sort_keys=True, indent=0)
@@ -1195,12 +1217,14 @@ def fill_badges(data, raw, cfg, out_dir, live):
     items = raw.get("items", {}) if raw else {}
     looked_up = found = 0
 
+    budget = time.time() + 60 * cfg.get("badge_minutes", 20)   # the rest is looked up next run
+
     def sportsdb(cid):
         nonlocal looked_up, found
         q = cid.split(":", 1)[1]
         hit = cache.get(q)
         fresh = hit and (hit.get("u") or dt.date.fromisoformat(hit["t"]) + retry > today)
-        if not fresh and live:
+        if not fresh and live and time.time() < budget:
             it = items.get(q, {})
             country = (items.get((it.get("country") or [""])[0]) or {}).get("en") or ""
             url = sportsdb_badge(it.get("en"), country)
