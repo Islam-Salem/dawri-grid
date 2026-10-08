@@ -364,6 +364,34 @@ html[dir="rtl"] .title { direction: rtl; }
   text-align: center;
   box-shadow: 0 1px 3px rgba(0, 0, 0, .3);
 }
+/* revealed answer after the game ends: flat, faded, clearly not the player's own */
+.sticker.revealed {
+  transform: none;
+  background: rgba(255, 255, 255, .55);
+  box-shadow: none;
+  outline: 2px dashed var(--slot-line);
+  outline-offset: -2px;
+  cursor: pointer;
+}
+.sticker.revealed .sticker-photo { opacity: .75; filter: grayscale(.85); }
+.sticker.revealed .sticker-name { background: #5B6675; color: #fff; }
+.sticker-tag {
+  position: absolute;
+  top: 9px;
+  inset-inline-start: 9px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: rgba(20, 30, 40, .78);
+  color: #fff;
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: .68rem;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+.tag-top, .tag-mine { font-weight: 700; }
+.tag-top { color: #8A6A00; }
+.tag-mine { color: var(--page); }
 .sticker.placed { animation: stick .45s cubic-bezier(.2, .9, .3, 1.25); }
 
 @keyframes stick {

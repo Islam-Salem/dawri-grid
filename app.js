@@ -46,6 +46,8 @@
       tapCell: "اضغط على أي خانة لرؤية كل الإجابات الصحيحة.",
       answersCount: (k) => `${k} إجابة صحيحة`,
       more: (k) => `و${k} آخرين`,
+      topAnswer: "الأشهر",
+      yourAnswer: "إجابتك",
       archiveEmpty: "لا توجد شبكات سابقة بعد.",
       archiveDone: (n) => `${n}/9`,
       archiveStarted: "لم تكتمل",
@@ -92,6 +94,8 @@
       tapCell: "Tap any square to see every correct answer.",
       answersCount: (k) => `${k} correct ${k === 1 ? "answer" : "answers"}`,
       more: (k) => `and ${k} more`,
+      topAnswer: "Most popular",
+      yourAnswer: "Your answer",
       archiveEmpty: "No past grids yet.",
       archiveDone: (n) => `${n}/9`,
       archiveStarted: "Unfinished",
@@ -423,6 +427,15 @@
     const p = state.cells[i];
     const label = crit[rowOf(i)].l + T.and + crit[colOf(i)].l;
     if (p === undefined) {
+      // game over: an unsolved square shows its most famous correct answer
+      const top = state.over ? answersFor(i)[0] : undefined;
+      if (top !== undefined) {
+        return `<button class="sticker revealed" data-i="${i}" aria-label="${esc(label + ": " + players[top][1] + " (" + T.topAnswer + ")")}">
+      <span class="sticker-photo">${photoHtml(top, 240)}</span>
+      <span class="sticker-name">${esc(players[top][1])}</span>
+      <span class="sticker-tag">${T.topAnswer}</span>
+    </button>`;
+      }
       return `<button class="slot${state.over ? " over" : ""}" data-i="${i}" aria-label="${esc(label)}"><span class="slot-mark" aria-hidden="true">${state.over ? "?" : "+"}</span></button>`;
     }
     const placed = lastPlaced === i && !reduceMotion ? " placed" : "";
@@ -645,14 +658,17 @@
     const mine = state.cells[i];
     $("#answers-q").innerHTML = pairHtml(i);
     $("#answers-count").textContent = T.answersCount(ans.length);
-    const shown = ans.slice(0, 40);
-    if (mine !== undefined && !shown.includes(mine)) shown.push(mine);
-    $("#answers-list").innerHTML = shown.map((p) => {
+    // every correct answer, most famous first; yours is highlighted
+    $("#answers-list").innerHTML = ans.map((p, k) => {
       const [, name, en, , , year] = players[p];
-      const sub = [en && en !== name ? esc(en) : "", year ? T.born(year) : ""].filter(Boolean).join(" · ");
+      const sub = [
+        p === mine ? `<b class="tag-mine">${T.yourAnswer}</b>` : k === 0 ? `<b class="tag-top">${T.topAnswer}</b>` : "",
+        en && en !== name ? esc(en) : "", year ? T.born(year) : "",
+      ].filter(Boolean).join(" · ");
       return `<li class="${p === mine ? "mine" : ""}">${photoHtml(p, 80)}<span class="who"><span class="who-name">${esc(name)}</span><span class="who-sub">${sub}</span></span><span class="who-rar">${rarity(i, p)}</span></li>`;
-    }).join("") + (ans.length > 40 ? `<li class="none">${T.more(ans.length - 40)}</li>` : "");
+    }).join("");
     openModal("#m-answers");
+    $("#answers-list").scrollTop = 0;
   }
 
   function showArchive() {
