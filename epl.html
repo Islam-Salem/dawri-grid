@@ -32,5 +32,22 @@
 <div id="app"></div>
 <script>window.GAME = { lang: "ar", root: "", data: "data/epl/", key: "epl", league: "epl", soundSearch: true, title: "شبكة الدوري الإنجليزي" };</script>
 <script src="app.js?v=20"></script>
+<script>
+// the page title always shows in full on one line: phones with enlarged text (or in-app browsers) can make it
+// wider than its space between the buttons, so shrink it just enough when it does not fit
+(function () {
+  function fit() {
+    var h = document.querySelector('.title h1'); if (!h) return;
+    h.style.fontSize = '';
+    var fs = parseFloat(getComputedStyle(h).fontSize), n = 0;
+    while (h.scrollWidth > h.clientWidth + 1 && fs > 10 && n++ < 40) { fs -= 0.5; h.style.fontSize = fs + 'px'; }
+  }
+  fit();
+  window.addEventListener('resize', fit);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
+  var app = document.getElementById('app');
+  if (app && window.MutationObserver) new MutationObserver(fit).observe(app, { childList: true });
+})();
+</script>
 </body>
 </html>
