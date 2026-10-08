@@ -1,4 +1,4 @@
-name: Update datahttps://github.com/Islam-Salem/dawri-grid/tree/main/football-grid
+name: Update data
 
 on:
   workflow_dispatch:        # "Run workflow" button in the Actions tab
