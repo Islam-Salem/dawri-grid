@@ -23,7 +23,10 @@
     ar: {
       help: "طريقة اللعب", stats: "الإحصائيات", archive: "الشبكات السابقة", close: "إغلاق",
       loading: "جارٍ تحميل شبكة اليوم…",
-      edition: (n, d) => `الشبكة رقم ${n} · ${d}`,
+      edition: (n, d) => `<span class="ed-n">الشبكة رقم ${n} · </span>${d}`,
+      levels: { easy: "سهلة", normal: "متوسطة", hard: "صعبة" },
+      whatsapp: "واتساب",
+      footLinks: '<a href="about.html">عن اللعبة</a> · <a href="privacy.html">الخصوصية</a> · <a href="credits.html">حقوق الصور</a>',
       guessesLeft: "محاولات متبقية",
       giveUp: "استسلم وأظهر الإجابات",
       seeResult: "نتيجتك",
@@ -62,6 +65,7 @@
         "معك ٩ محاولات فقط، والإجابة الخاطئة تُحتسب محاولة.",
         "لا يمكن استخدام نفس اللاعب في أكثر من خانة.",
         "شبكة جديدة كل يوم عند منتصف الليل بتوقيت القاهرة.",
+        "الصعوبة تزيد خلال الأسبوع: سهلة السبت والأحد، متوسطة من الاثنين للأربعاء، وصعبة الخميس والجمعة.",
       ],
       helpNote: "البيانات من ويكي بيانات وقد تكون ناقصة لبعض اللاعبين.",
       and: " و ",
@@ -69,7 +73,10 @@
     en: {
       help: "How to play", stats: "Statistics", archive: "Past grids", close: "Close",
       loading: "Loading today's grid…",
-      edition: (n, d) => `Grid ${n} · ${d}`,
+      edition: (n, d) => `<span class="ed-n">Grid ${n} · </span>${d}`,
+      levels: { easy: "Easy", normal: "Medium", hard: "Hard" },
+      whatsapp: "WhatsApp",
+      footLinks: '<a href="about.html">About</a> · <a href="privacy.html">Privacy</a> · <a href="credits.html">Photo credits</a>',
       guessesLeft: "guesses left",
       giveUp: "Give up and show answers",
       seeResult: "Your result",
@@ -108,6 +115,7 @@
         "You have 9 guesses in total, and a wrong answer uses one up.",
         "Each player can only be used once.",
         "A new grid every day at midnight Cairo time.",
+        "Difficulty rises through the week: easy on Saturday and Sunday, medium Monday to Wednesday, hard on Thursday and Friday.",
       ],
       helpNote: "Data comes from Wikidata and may be incomplete for some players.",
       and: " & ",
@@ -127,6 +135,7 @@
   const UDIR = UL !== GAME.lang ? `lang="${UL}" dir="${UL === "ar" ? "rtl" : "ltr"}"` : "";
 
   const ICONS = {
+    whatsapp: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2a8.2 8.2 0 0 1-4.2-1.1l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.7.8-.8 1-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.2-.4.7-1.4a.5.5 0 0 0 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.7 11.8 11.8 0 0 0 4.5 4c1.7.7 2.3.8 3.2.6a2.7 2.7 0 0 0 1.8-1.2 2.2 2.2 0 0 0 .1-1.3c0-.1-.2-.2-.5-.3Z"/></svg>',
     help: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M9.3 9.3a2.8 2.8 0 1 1 3.9 2.6c-.8.4-1.2.9-1.2 1.8v.6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="17.2" r="1.2" fill="currentColor"/></svg>',
     stats: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V12M12 20V5M19 20v-9" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>',
     archive: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="2.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3.5 10h17M8 3v4M16 3v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
@@ -370,7 +379,7 @@
         </aside>
       </main>
 
-      <footer class="foot"><p>${T.dataFrom}</p><p id="updated"></p></footer>
+      <footer class="foot"><p>${T.dataFrom}</p><p class="foot-links">${T.footLinks}</p><p id="updated"></p></footer>
 
       <div class="modal search-modal" id="m-search" hidden role="dialog" aria-modal="true" aria-label="${T.searchPlaceholder}">
         <div class="sheet">
@@ -652,7 +661,8 @@
       for (let c = 0; c < 3; c++) rows += state.cells[r * 3 + c] !== undefined ? "🟩" : "⬜";
       rows += "\n";
     }
-    return `${GAME.title} #${grid.n}\n${U.shareLine(filledCount(), TOTAL_GUESSES - state.guesses)}\n${rows}‎${location.origin + location.pathname}‎`;
+    const level = grid.d && U.levels[grid.d] ? ` · ${U.levels[grid.d]}` : "";
+    return `${GAME.title} #${grid.n}${level}\n${U.shareLine(filledCount(), TOTAL_GUESSES - state.guesses)}\n${rows}‎${location.origin + location.pathname}‎`;
   }
 
   function showStats() {
@@ -674,7 +684,10 @@
               <p>${U.triesLine(TOTAL_GUESSES - state.guesses)}</p>
             </div>
           </div>
-          <button class="btn primary wide" id="btn-share">${U.shareResult}</button>
+          <div class="share-row">
+            <button class="btn primary" id="btn-share">${U.shareResult}</button>
+            <a class="btn whatsapp" id="btn-wa" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(shareText())}">${ICONS.whatsapp}<span>${U.whatsapp}</span></a>
+          </div>
           <p class="hint">${U.tapCell}</p>
         </section>`;
     }
@@ -806,6 +819,11 @@
   // ---------------------------------------------------------------- start
   function fail(msg) { $("#status").textContent = msg; $("#status").hidden = false; }
 
+  // installable app: the service worker caches files so the game also opens offline
+  if ("serviceWorker" in navigator && location.protocol === "https:") {
+    window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
+  }
+
   async function start() {
     document.body.dataset.league = GAME.league;
     shell();
@@ -839,7 +857,9 @@
     if (![...grid.rows, ...grid.cols].every((id) => crit[id])) return fail(T.gridGone);
 
     load();
-    $("#edition").textContent = U.edition(grid.n, prettyDate(date));
+    // on phones the grid number is hidden so date and difficulty fit on one line
+    $("#edition").innerHTML = U.edition(grid.n, esc(prettyDate(date)))
+      + (grid.d && U.levels[grid.d] ? ` · <b class="lvl lvl-${grid.d}">${U.levels[grid.d]}</b>` : "");
     $("#updated").textContent = DATA.updated ? T.updated(DATA.updated) : "";
     $("#status").hidden = true;
     $("#album").hidden = false;

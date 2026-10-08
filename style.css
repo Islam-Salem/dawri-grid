@@ -456,6 +456,16 @@ html[dir="rtl"] .title { direction: rtl; }
 .btn.quiet { background: transparent; color: var(--ink-soft); border: 1.5px solid var(--slot-line); }
 .btn.quiet:hover { color: var(--ink); border-color: var(--ink-soft); }
 .btn.wide { width: 100%; }
+.share-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.btn.whatsapp {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  background: #25D366; color: #0B3D20; text-decoration: none;
+  box-shadow: 0 3px 0 rgba(0, 0, 0, .25);
+}
+.btn.whatsapp svg { width: 20px; height: 20px; flex: none; }
+.btn.whatsapp:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(0, 0, 0, .25); }
+.foot a { color: inherit; }
+.foot-links { margin-top: 6px !important; }
 
 /* ---------------------------------------------------------------- footer */
 .foot {
@@ -774,3 +784,43 @@ html[dir="rtl"] .title { direction: rtl; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* ---------------------------------------------------------------- info pages (about, privacy, credits) */
+.doc-page { padding: 18px 16px 8px; }
+.doc-top {
+  max-width: 720px; margin: 0 auto 14px;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+}
+.doc-top .brand { font-family: var(--display); font-weight: 800; font-size: 1.25rem; text-decoration: none; }
+.doc-top nav { display: flex; gap: 8px; flex-wrap: wrap; }
+.doc-top nav a {
+  text-decoration: none; font-family: var(--display); font-weight: 600; font-size: .9rem;
+  padding: 6px 14px; border-radius: 999px; border: 1.5px solid var(--slot-line);
+}
+.doc {
+  max-width: 720px; margin: 0 auto;
+  background: var(--card); color: var(--card-ink);
+  border-radius: 16px; padding: 22px 22px 26px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .25);
+}
+.doc h1 { font-family: var(--display); font-size: 1.6rem; line-height: 1.4; margin: 0 0 6px; }
+.doc h2 { font-family: var(--display); font-size: 1.15rem; line-height: 1.4; margin: 22px 0 6px; }
+.doc p, .doc li { line-height: 1.8; }
+.doc ul, .doc ol { padding-inline-start: 22px; }
+.doc .muted { color: var(--card-soft); font-size: .9rem; }
+.doc a { color: #1F6B3A; font-weight: 600; }
+.doc .example {
+  background: #F3EEE3; border-radius: 10px; padding: 10px 14px; margin: 10px 0;
+}
+@media (max-width: 600px) {
+  .doc { padding: 18px 16px 22px; }
+  .doc h1 { font-size: 1.35rem; }
+}
+
+/* difficulty word in the date line */
+.lvl { font-weight: 700; }
+.lvl-easy { color: #9BE3A8; }
+.lvl-normal { color: var(--accent); }
+.lvl-hard { color: #FF9C8A; }
+@media (max-width: 600px) { .ed-n { display: none; } }
+.doc-top .brand { white-space: nowrap; }

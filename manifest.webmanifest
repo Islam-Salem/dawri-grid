@@ -1,0 +1,21 @@
+{
+  "name": "شبكة الدوري",
+  "short_name": "شبكة الدوري",
+  "description": "لعبة كرة قدم يومية: املأ الشبكة بلاعبين ينطبق عليهم الشرطان",
+  "lang": "ar",
+  "dir": "rtl",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#1F6B3A",
+  "theme_color": "#1F6B3A",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "الدوري المصري", "url": "./" },
+    { "name": "الدوري الإنجليزي", "url": "epl.html" }
+  ]
+}

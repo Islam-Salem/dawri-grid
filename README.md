@@ -96,6 +96,14 @@ Clubs with none (or whose image fails to load) show a shield in the club's colou
 TheSportsDB lookups are cached in `badge_cache.json`. Club crests are trademarks: before adding ads or
 publishing an app, remove `"thesportsdb"` from `badge_sources` in `config.json` (per league).
 
+## Popularity
+
+Players are ranked by how often their Arabic and English Wikipedia pages were viewed over the
+past 12 months (Arabic views count double, since that's the game's audience). This decides the
+answer revealed after giving up, the order of the answer list, and which players count as
+"well-known" when grids are built. Views are cached in `views_cache.json` and refreshed every 30
+days. Set `"fame": "links"` in `config.json` to go back to counting Wikipedia articles instead.
+
 ## Running locally
 
 ```

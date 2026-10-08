@@ -85,7 +85,22 @@ COMMON_DEFAULTS = {
     "top_clubs_count": 6,        # how many clubs count as "top" when top_clubs is empty
     "min_top_clubs": 2,          # each grid has at least this many top clubs as columns
     "known_links": 10,           # a "well-known" player has at least this many Wikipedia articles
+                                 # (with page views on, the same NUMBER of players counts as well-known,
+                                 #  but they are chosen by page views)
+    "fame": "views",             # "views": Wikipedia page views; "links": number of Wikipedia articles
+    "view_weights": {"ar": 2, "en": 1},  # Arabic page views count double (the game's audience)
+    "view_months": 12,           # page views over this many past months
+    "view_retry_days": 30,       # how long cached page views are kept
     "min_known_per_cell": 2,     # each square needs at least this many well-known answers
+    # Difficulty by day of the week (Cairo), like the NYT crossword over a Saturday-to-Friday week:
+    # easy Sat-Sun, medium Mon-Wed, hard Thu-Fri.
+    "difficulty_by_weekday": {"sat": "easy", "sun": "easy", "mon": "normal", "tue": "normal",
+                              "wed": "normal", "thu": "hard", "fri": "hard"},
+    "difficulty": {
+        "easy":   {"min_known": 4, "min_top": 3},                  # 4+ well-known answers per square, 3 top clubs
+        "normal": {"min_known": 2, "min_top": 2},
+        "hard":   {"min_known": 1, "min_top": 1, "tough_cells": 3},  # 3+ squares with at most 2 well-known answers
+    },
 }
 
 LEAGUES = {
@@ -286,6 +301,18 @@ def fetch_raw(cfg):
         if d["female"] or d["links"] < min_links or too_old or not (d["en"] or d["ar"]):
             del P[p]
     log(f"  {len(P)} players after filters")
+
+    log("Wikipedia article titles (for page views)...")
+    for batch in chunks(sorted(P), 150):
+        rows = try_query("articles", f"""
+            SELECT ?p ?site ?title WHERE {{
+              VALUES ?p {{ {values(batch)} }}
+              ?a schema:about ?p ; schema:isPartOf ?site ; schema:name ?title .
+              FILTER(?site IN (<https://ar.wikipedia.org/>, <https://en.wikipedia.org/>))
+            }}""")
+        for r in rows:
+            wiki = "ar" if "//ar." in val(r, "site") else "en"
+            P[qid(r["p"])].setdefault("wiki", {})[wiki] = val(r, "title")
 
     log("Player careers...")
     for batch in chunks(sorted(P), 150):
@@ -720,7 +747,7 @@ def fame_weights(crit, players):
             # median fame of the club's 100 best-known players, so a club with many
             # forgettable players doesn't outrank one with famous ones
             top = sorted((links[i] for i in members), reverse=True)[:100]
-            score = (top[len(top) // 2] + 1) ** 1.5
+            score = (1 + math.log10(top[len(top) // 2] + 1)) ** 4
         else:
             score = math.sqrt(len(members))
         out.append(WEIGHT[typ] * score)
@@ -733,7 +760,28 @@ def fame_weights(crit, players):
     return ids, out
 
 
-def make_grid(date, crit, sets, cfg, recent, weighting, top=(), known=None):
+WEEKDAYS = ("mon", "tue", "wed", "thu", "fri", "sat", "sun")
+
+
+def tier_for(day, cfg):
+    return (cfg.get("difficulty_by_weekday") or {}).get(WEEKDAYS[day.weekday()], "normal")
+
+
+def tier_rules(tier, cfg, n_top):
+    t = dict((cfg.get("difficulty") or {}).get(tier) or {})
+    return (t.get("min_known", cfg.get("min_known_per_cell", 2)),
+            min(t.get("min_top", cfg.get("min_top_clubs", 2)), n_top),
+            t.get("tough_cells", 0))
+
+
+def tough_ok(rows, cols, known, tough_cells):
+    """Hard days: at least tough_cells squares with no more than 2 well-known answers."""
+    if not tough_cells or known is None:
+        return True
+    return sum(1 for r in rows for c in cols if len(known[r] & known[c]) <= 2) >= tough_cells
+
+
+def make_grid(date, crit, sets, cfg, recent, weighting, top=(), known=None, tier="normal"):
     rng = random.Random(f"{cfg['salt']}:{date}")
     ids, weights = weighting
     top = set(top)
@@ -752,13 +800,14 @@ def make_grid(date, crit, sets, cfg, recent, weighting, top=(), known=None):
 
     if len(club_ids) < 3 or len(row_ids) < 3:
         return None
-    min_top = min(cfg.get("min_top_clubs", 2), len(top))
-    min_known = cfg.get("min_known_per_cell", 2)
+    min_known, min_top, tough = tier_rules(tier, cfg, len(top))
     # relax step by step only if a day can't be built with the full rules
-    for min_cell, need_known, need_top in ((cfg["min_cell"], min_known, min_top),
-                                           (cfg["min_cell"], max(1, min_known - 1), min_top),
-                                           (max(2, cfg["min_cell"] - 1), 1, max(1, min_top - 1)),
-                                           (1, 0, 0)):
+    for min_cell, need_known, need_top, need_tough in (
+            (cfg["min_cell"], min_known, min_top, tough),
+            (cfg["min_cell"], max(1, min_known - 1), min_top, max(0, tough - 1)),
+            (cfg["min_cell"], max(1, min_known - 2), max(1, min_top - 1), 0),
+            (max(2, cfg["min_cell"] - 1), 1, max(1, min_top - 1), 0),
+            (1, 0, 0, 0)):
         for _ in range(30000):
             cols = pick(club_ids, 3)
             if sum(c in top for c in cols) < need_top:
@@ -768,8 +817,8 @@ def make_grid(date, crit, sets, cfg, recent, weighting, top=(), known=None):
                 continue
             if frozenset(rows + cols) in recent:
                 continue
-            if grid_ok(rows, cols, sets, min_cell, known, need_known):
-                return {"rows": rows, "cols": cols}
+            if grid_ok(rows, cols, sets, min_cell, known, need_known) and tough_ok(rows, cols, known, need_tough):
+                return {"rows": rows, "cols": cols, "d": tier}
     return None
 
 
@@ -780,15 +829,22 @@ def build_grids(data, cfg, existing, today, keep_future=True):
     weighting = fame_weights(crit, data.get("players"))
     players = data.get("players") or []
     top = top_club_ids(crit, players, cfg)
-    thr = cfg.get("known_links", 10)
-    known = {c: {i for i in v["m"] if players and players[i][3] >= thr} for c, v in crit.items()}
-    min_known = cfg.get("min_known_per_cell", 2)
-    min_top = min(cfg.get("min_top_clubs", 2), len(top))
-
-    def follows_rules(g):
+    if data.get("fame") == "views" and data.get("known_count"):
+        # players are sorted most-viewed first: the top known_count are the well-known ones
+        kc = data["known_count"]
+        known = {c: {i for i in v["m"] if i < kc} for c, v in crit.items()}
+    else:
+        thr = cfg.get("known_links", 10)
+        known = {c: {i for i in v["m"] if players and players[i][3] >= thr} for c, v in crit.items()}
+    def follows_rules(g, tier):
+        """A planned grid is kept only if it still matches its day's difficulty."""
+        if g.get("d") != tier:
+            return False
+        min_known, min_top, tough = tier_rules(tier, cfg, len(top))
         return (layout_ok(g["rows"], g["cols"], crit)
                 and sum(c in top for c in g["cols"]) >= min_top
-                and grid_ok(g["rows"], g["cols"], sets, cfg["min_cell"], known, min_known))
+                and grid_ok(g["rows"], g["cols"], sets, cfg["min_cell"], known, min_known)
+                and tough_ok(g["rows"], g["cols"], known, tough))
     start = dt.date.fromisoformat(cfg["start_date"])
     end = today + dt.timedelta(days=cfg["days_ahead"])
     out = {}
@@ -798,20 +854,23 @@ def build_grids(data, cfg, existing, today, keep_future=True):
         ds = day.isoformat()
         old = existing.get(ds)
         if old:  # renamed criterion id
-            old = {k: [("nt:home" if c == "nt:egypt" else c) for c in old[k]] for k in ("rows", "cols")}
+            old = dict(old, **{k: [("nt:home" if c == "nt:egypt" else c) for c in old[k]] for k in ("rows", "cols")})
+        tier = tier_for(day, cfg)
         n = (day - start).days + 1
         keep = day <= today or keep_future
         playable = (all(c in crit for c in old["rows"] + old["cols"])
                     and grid_ok(old["rows"], old["cols"], sets, cfg["min_cell"])) if old else False
         # today's grid is never redesigned (people may be mid-game); later days must follow the layout
-        still_valid = playable and (day <= today or follows_rules(old))
+        still_valid = playable and (day <= today or follows_rules(old, tier))
         if old and (day < today or (keep and still_valid)):
             g = {"rows": old["rows"], "cols": old["cols"]}
+            if old.get("d"):
+                g["d"] = old["d"]
         elif day < today:
             day += dt.timedelta(days=1)
             continue  # never invent grids for the past
         else:
-            g = make_grid(ds, crit, sets, cfg, set(recent[-60:]), weighting, top, known)
+            g = make_grid(ds, crit, sets, cfg, set(recent[-60:]), weighting, top, known, tier)
             if g is None:
                 log(f"could not build a grid for {ds}")
                 day += dt.timedelta(days=1)
@@ -1009,6 +1068,105 @@ def sportsdb_badge(name_en, country_en):
     return ""
 
 
+PAGEVIEWS = "https://wikimedia.org/api/rest_v1/metrics/pageviews/per-article/{wiki}.wikipedia/all-access/user/{title}/monthly/{start}/{end}"
+
+
+def page_views(wiki, title, start, end):
+    """Total views of one Wikipedia article between two months. None = request failed."""
+    url = PAGEVIEWS.format(wiki=wiki, title=urllib.parse.quote(title.replace(" ", "_"), safe=""),
+                           start=start, end=end)
+    for attempt in range(3):
+        try:
+            req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+            with urllib.request.urlopen(req, timeout=30) as r:
+                return sum(int(i.get("views", 0)) for i in json.load(r).get("items", []))
+        except urllib.error.HTTPError as e:
+            if e.code == 404:          # no views recorded
+                return 0
+            time.sleep(30 if e.code == 429 else 3 * (attempt + 1))
+        except Exception:  # noqa: BLE001
+            time.sleep(3 * (attempt + 1))
+    return None
+
+
+def rank_by_views(data, raw, cfg, out_dir, live):
+    """Re-order players by Wikipedia page views (Arabic + English, past months), most viewed
+    first, so 'most popular answer' and 'well-known player' follow what people look up today
+    rather than how many languages have an article. Views are cached in views_cache.json."""
+    players = data["players"]
+    # the same number of well-known players as the article-count rule gave, for similar difficulty
+    data["known_count"] = sum(1 for p in players if p[3] >= cfg.get("known_links", 10))
+    if cfg.get("fame") != "views":
+        return
+    path = os.path.join(out_dir, "views_cache.json")
+    try:
+        with open(path, encoding="utf-8") as f:
+            cache = json.load(f)
+    except (OSError, ValueError):
+        cache = {}
+    today = dt.date.today()
+    first = (today.replace(day=1) - dt.timedelta(days=1)).replace(day=1)   # last full month
+    months = cfg.get("view_months", 12)
+    y, m = first.year, first.month - (months - 1)
+    while m < 1:
+        y, m = y - 1, m + 12
+    start, end = f"{y:04d}{m:02d}0100", f"{first.year:04d}{first.month:02d}0100"
+    keep = dt.timedelta(days=cfg.get("view_retry_days", 30))
+    weights = cfg.get("view_weights", {"ar": 2, "en": 1})
+    raw_players = raw.get("players", {}) if raw else {}
+
+    jobs = []
+    for row in players:
+        pid = row[0]
+        hit = cache.get(pid)
+        if hit and dt.date.fromisoformat(hit["t"]) + keep > today:
+            continue
+        titles = (raw_players.get(pid) or {}).get("wiki") or {}
+        if titles and live:
+            jobs.append((pid, titles))
+
+    if jobs:
+        from concurrent.futures import ThreadPoolExecutor
+        log(f"Page views: looking up {len(jobs)} players...")
+
+        def work(job):
+            pid, titles = job
+            got = {w: page_views(w, t, start, end) for w, t in titles.items() if w in weights}
+            return pid, got
+
+        done = failed = 0
+        with ThreadPoolExecutor(max_workers=6) as pool:
+            for pid, got in pool.map(work, jobs):
+                if any(v is None for v in got.values()):
+                    failed += 1          # retried next run
+                    continue
+                cache[pid] = {"v": got, "t": today.isoformat()}
+                done += 1
+        log(f"  page views: {done} looked up, {failed} failed")
+        os.makedirs(out_dir, exist_ok=True)
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(cache, f, ensure_ascii=False, sort_keys=True, indent=0)
+
+    have = sum(1 for row in players if row[0] in cache)
+    if have < 0.8 * len(players):
+        log(f"  page views for only {have}/{len(players)} players - keeping the article-count order")
+        return
+
+    def score(row):
+        v = (cache.get(row[0]) or {}).get("v") or {}
+        return sum(weights.get(w, 0) * n for w, n in v.items())
+
+    order = sorted(range(len(players)), key=lambda i: (-score(players[i]), i))
+    new_index = {old: new for new, old in enumerate(order)}
+    data["players"] = [players[i] for i in order]
+    for row in data["players"]:
+        row[3] = int(math.sqrt(score(row)))   # fame points: square root of weighted yearly views
+    for c in data["criteria"].values():
+        c["m"] = sorted(new_index[i] for i in c["m"])
+    data["fame"] = "views"
+    log(f"  players ranked by page views; well-known players: top {data['known_count']}")
+
+
 LOGO_FILE = re.compile(r"logo|crest|badge|emblem|escudo|wappen|شعار", re.I)
 WORDMARK = re.compile(r"wordmark|text|word[_ ]mark", re.I)
 
@@ -1118,6 +1276,7 @@ def run_league(name, cfg, args):
     if len(data["players"]) < 50:
         log(f"Too few players for {name} - keeping the old data (Wikidata problem?)")
         return False
+    rank_by_views(data, raw, cfg, out_dir, live=not args.raw_in)
     fill_extra_photos(data, raw, cfg, out_dir, live=not args.raw_in)
     fill_badges(data, raw, cfg, out_dir, live=not args.raw_in)
 
