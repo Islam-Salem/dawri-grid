@@ -81,6 +81,11 @@ COMMON_DEFAULTS = {
     "photo_lookup_limit": 2000,  # max new photo lookups per run (most famous first)
     "min_birth_year": None,      # ignore players born before this year
     "min_links": 0,              # ignore players with fewer Wikipedia articles than this
+    "top_clubs": [],             # the most popular clubs (criterion ids); empty = picked by fame
+    "top_clubs_count": 6,        # how many clubs count as "top" when top_clubs is empty
+    "min_top_clubs": 2,          # each grid has at least this many top clubs as columns
+    "known_links": 10,           # a "well-known" player has at least this many Wikipedia articles
+    "min_known_per_cell": 2,     # each square needs at least this many well-known answers
 }
 
 LEAGUES = {
@@ -647,18 +652,42 @@ def apply_config(criteria, cfg):
 WEIGHT = {"club": 3.0, "fclub": 0.6, "nt": 2.0, "nat": 0.8, "abroad": 0.9, "pos": 0.6, "award": 0.6}
 
 
-def grid_ok(rows, cols, sets, min_cell):
+def grid_ok(rows, cols, sets, min_cell, known=None, min_known=0):
+    """Every square needs min_cell answers, and min_known of them well-known players."""
     for r in rows:
         for c in cols:
             if len(sets[r] & sets[c]) < min_cell:
                 return False
+            if known is not None and min_known and len(known[r] & known[c]) < min_known:
+                return False
     return True
 
 
-def type_ok(chosen, crit):
-    types = [crit[c]["t"] for c in chosen]
-    return (types.count("club") >= 3 and types.count("pos") <= 1 and types.count("award") <= 1
-            and types.count("nat") + types.count("abroad") <= 2 and types.count("fclub") <= 1)
+def top_club_ids(crit, players, cfg):
+    """The clubs that must appear most: from config, else the most famous by player fame."""
+    listed = [c for c in cfg.get("top_clubs", []) if c in crit and crit[c]["t"] == "club"]
+    if listed:
+        return listed
+    links = [p[3] for p in players] if players else []
+    scored = []
+    for c, v in crit.items():
+        if v["t"] == "club" and links:
+            top = sorted((links[i] for i in v["m"]), reverse=True)[:100]
+            scored.append((top[len(top) // 2], c))
+    scored.sort(reverse=True)
+    return [c for _, c in scored[:cfg.get("top_clubs_count", 6)]]
+
+
+# Columns are always three league clubs; rows are always three things that are not clubs.
+ROW_TYPES = ("nt", "nat", "abroad", "pos", "award")
+
+
+def layout_ok(rows, cols, crit):
+    if not all(crit[c]["t"] == "club" for c in cols):
+        return False
+    types = [crit[r]["t"] for r in rows]
+    return (all(t in ROW_TYPES for t in types) and types.count("pos") <= 1
+            and types.count("award") <= 1 and types.count("nat") <= 2 and types.count("abroad") <= 2)
 
 
 def fame_weights(crit, players):
@@ -689,23 +718,42 @@ def fame_weights(crit, players):
     return ids, out
 
 
-def make_grid(date, crit, sets, cfg, recent, weighting):
+def make_grid(date, crit, sets, cfg, recent, weighting, top=(), known=None):
     rng = random.Random(f"{cfg['salt']}:{date}")
     ids, weights = weighting
-    for min_cell in (cfg["min_cell"], max(2, cfg["min_cell"] - 1), 1):
+    top = set(top)
+    # popular clubs are picked far more often than the rest
+    club_ids = [(c, w * (8 if c in top else 1)) for c, w in zip(ids, weights) if crit[c]["t"] == "club"]
+    row_ids = [(c, w) for c, w in zip(ids, weights) if crit[c]["t"] in ROW_TYPES]
+
+    def pick(pool, n):
+        out = []
+        names, ws = [c for c, _ in pool], [w for _, w in pool]
+        while len(out) < n:
+            c = rng.choices(names, ws)[0]
+            if c not in out:
+                out.append(c)
+        return out
+
+    if len(club_ids) < 3 or len(row_ids) < 3:
+        return None
+    min_top = min(cfg.get("min_top_clubs", 2), len(top))
+    min_known = cfg.get("min_known_per_cell", 2)
+    # relax step by step only if a day can't be built with the full rules
+    for min_cell, need_known, need_top in ((cfg["min_cell"], min_known, min_top),
+                                           (cfg["min_cell"], max(1, min_known - 1), min_top),
+                                           (max(2, cfg["min_cell"] - 1), 1, max(1, min_top - 1)),
+                                           (1, 0, 0)):
         for _ in range(30000):
-            chosen = []
-            while len(chosen) < 6:
-                c = rng.choices(ids, weights)[0]
-                if c not in chosen:
-                    chosen.append(c)
-            if not type_ok(chosen, crit):
+            cols = pick(club_ids, 3)
+            if sum(c in top for c in cols) < need_top:
                 continue
-            key = frozenset(chosen)
-            if key in recent:
+            rows = pick(row_ids, 3)
+            if not layout_ok(rows, cols, crit):
                 continue
-            rows, cols = chosen[:3], chosen[3:]
-            if grid_ok(rows, cols, sets, min_cell):
+            if frozenset(rows + cols) in recent:
+                continue
+            if grid_ok(rows, cols, sets, min_cell, known, need_known):
                 return {"rows": rows, "cols": cols}
     return None
 
@@ -715,6 +763,17 @@ def build_grids(data, cfg, existing, today, keep_future=True):
     crit = data["criteria"]
     sets = {c: set(v["m"]) for c, v in crit.items()}
     weighting = fame_weights(crit, data.get("players"))
+    players = data.get("players") or []
+    top = top_club_ids(crit, players, cfg)
+    thr = cfg.get("known_links", 10)
+    known = {c: {i for i in v["m"] if players and players[i][3] >= thr} for c, v in crit.items()}
+    min_known = cfg.get("min_known_per_cell", 2)
+    min_top = min(cfg.get("min_top_clubs", 2), len(top))
+
+    def follows_rules(g):
+        return (layout_ok(g["rows"], g["cols"], crit)
+                and sum(c in top for c in g["cols"]) >= min_top
+                and grid_ok(g["rows"], g["cols"], sets, cfg["min_cell"], known, min_known))
     start = dt.date.fromisoformat(cfg["start_date"])
     end = today + dt.timedelta(days=cfg["days_ahead"])
     out = {}
@@ -727,14 +786,17 @@ def build_grids(data, cfg, existing, today, keep_future=True):
             old = {k: [("nt:home" if c == "nt:egypt" else c) for c in old[k]] for k in ("rows", "cols")}
         n = (day - start).days + 1
         keep = day <= today or keep_future
-        if old and (day < today or (keep and all(c in crit for c in old["rows"] + old["cols"])
-                                    and grid_ok(old["rows"], old["cols"], sets, cfg["min_cell"]))):
+        playable = (all(c in crit for c in old["rows"] + old["cols"])
+                    and grid_ok(old["rows"], old["cols"], sets, cfg["min_cell"])) if old else False
+        # today's grid is never redesigned (people may be mid-game); later days must follow the layout
+        still_valid = playable and (day <= today or follows_rules(old))
+        if old and (day < today or (keep and still_valid)):
             g = {"rows": old["rows"], "cols": old["cols"]}
         elif day < today:
             day += dt.timedelta(days=1)
             continue  # never invent grids for the past
         else:
-            g = make_grid(ds, crit, sets, cfg, set(recent[-60:]), weighting)
+            g = make_grid(ds, crit, sets, cfg, set(recent[-60:]), weighting, top, known)
             if g is None:
                 log(f"could not build a grid for {ds}")
                 day += dt.timedelta(days=1)

@@ -22,7 +22,16 @@
     "min_position": 8,
     "min_award": 6,
     "start_date": "2026-10-08",
-    "salt": "egypt-grid"
+    "salt": "egypt-grid",
+    "top_clubs": [
+      "club:Q223566",
+      "club:Q286504",
+      "club:Q18207291",
+      "club:Q1329368",
+      "club:Q286490",
+      "club:Q2084802"
+    ],
+    "known_links": 10
   },
   "epl": {
     "exclude": [
@@ -54,6 +63,19 @@
     "allow_awards": [
       "award:Q106634956",
       "award:Q1323117"
-    ]
+    ],
+    "top_clubs": [
+      "club:Q18656",
+      "club:Q9616",
+      "club:Q9617",
+      "club:Q50602",
+      "club:Q1130849",
+      "club:Q18741",
+      "club:Q5794",
+      "club:Q18716",
+      "club:Q18747",
+      "club:Q18711"
+    ],
+    "known_links": 30
   }
 }

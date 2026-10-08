@@ -42,7 +42,8 @@ the Premier League part takes about an hour).
 | Position | حارس مرمى | listed position on Wikidata |
 | Award | (varies) | award listed on Wikidata |
 
-Every grid has at least 3 Egyptian clubs, and every cell needs at least `min_cell` valid answers.
+Columns are always three league clubs; rows are always three non-club criteria (national team,
+nationality, played in a country, position, award). Every cell needs at least `min_cell` valid answers.
 
 ## Tuning — `config.json`
 
@@ -56,6 +57,9 @@ pool to the modern era and players with Wikipedia articles.
 - `allow_awards`: if set, only these award criteria are used (the Premier League keeps the two halls of fame).
 - `min_cell`, `min_club`, …: thresholds. Raise `min_cell` for easier grids.
 - `salt`: change it to reshuffle all *future* grids.
+- `top_clubs`: the popular clubs; every grid has at least `min_top_clubs` (default 2) of them as columns.
+- `known_links` / `min_known_per_cell`: every square needs at least `min_known_per_cell` (default 2) answers
+  who have `known_links` or more Wikipedia articles (Egypt 10, Premier League 30).
 
 After editing, run the *Update data* workflow again. Past days' grids are never changed.
 To apply config changes without downloading anything, run `python scraper/build_data.py --regrid`
