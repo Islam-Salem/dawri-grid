@@ -39,16 +39,16 @@
       "nat:Q29999"
     ],
     "labels": {
-      "abroad:Q148": "Played in China",
-      "abroad:Q55": "Played in the Netherlands",
-      "abroad:Q30": "Played in the USA",
-      "nat:Q30": "USA",
-      "nat:Q148": "China",
-      "abroad:Q34": "Played in Sweden",
-      "fclub:Q8682": "Real Madrid (Spain)",
-      "fclub:Q131499": "Benfica (Portugal)",
-      "fclub:Q180305": "Monaco (France)",
-      "abroad:Q235": "Played in Monaco"
+      "abroad:Q148": "لعب في الصين",
+      "abroad:Q55": "لعب في هولندا",
+      "abroad:Q30": "لعب في أمريكا",
+      "nat:Q30": "من أمريكا",
+      "nat:Q148": "من الصين",
+      "abroad:Q34": "لعب في السويد",
+      "fclub:Q8682": "ريال مدريد (إسبانيا)",
+      "fclub:Q131499": "بنفيكا (البرتغال)",
+      "fclub:Q180305": "موناكو (فرنسا)",
+      "abroad:Q235": "لعب في موناكو"
     },
     "min_birth_year": 1960,
     "min_links": 2,

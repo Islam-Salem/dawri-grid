@@ -2,7 +2,7 @@
 
 Daily 3×3 football grid games (like Immaculate Grid):
 - **Egyptian league** (Arabic) at the site root — data in `data/`
-- **Premier League** (English) at `epl.html` — data in `data/epl/`
+- **Premier League** (Arabic labels, players shown in Arabic when Wikidata has a standard Arabic name, else English; Arabic search also finds English names by sound) at `epl.html` — data in `data/epl/`
 
 Both pages share `app.js` and `style.css`; each page sets `window.GAME` (language, data folder).
 

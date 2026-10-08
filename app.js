@@ -1,6 +1,6 @@
 /*
  * Football grid game — shared by the Egyptian league page (Arabic) and the
- * Premier League page (English). Each page sets window.GAME before loading this file:
+ * Premier League page (Arabic, epl.html). Each page sets window.GAME before loading this file:
  *   { lang: "ar" | "en", root: "", data: "data/" | "data/epl/",
  *     key: "egrid" | "epl", league: "egypt" | "epl", title: "..." }
  * The whole interface is built here, so both pages stay identical in behaviour.
@@ -14,7 +14,7 @@
   );
   const TOTAL_GUESSES = 9;
   const LEAGUES = [
-    { id: "epl", href: "epl.html", label: "Premier League", lang: "en" },
+    { id: "epl", href: "epl.html", label: "الدوري الإنجليزي", lang: "ar" },
     { id: "egypt", href: "./", label: "الدوري المصري", lang: "ar" },
   ];
 
@@ -117,7 +117,18 @@
       and: " & ",
     },
   };
-  const T = STRINGS[GAME.lang] || STRINGS.ar;
+  // Arabic Premier League page: same Arabic text with English-league examples
+  const T = Object.assign({}, STRINGS[GAME.lang] || STRINGS.ar, GAME.league === "epl" && GAME.lang === "ar" ? {
+    helpItems: STRINGS.ar.helpItems.map((x) => x.replace("«الأهلي»", "«أرسنال»").replace("«الزمالك»", "«تشيلسي»")),
+    tags: Object.assign({}, STRINGS.ar.tags, { fclub: "نادٍ خارج إنجلترا" }),
+  } : {});
+  // How to play, the result panel, statistics and past grids can use another language than
+  // the grid itself: the Premier League page shows English names with Arabic menus.
+  const UL = GAME.uiLang || GAME.lang;
+  const U = UL === GAME.lang ? T : Object.assign({}, STRINGS[UL] || T, GAME.league === "epl" && UL === "ar" ? {
+    helpItems: T.helpItems.map((x) => x.replace("«الأهلي»", "«أرسنال»").replace("«الزمالك»", "«تشيلسي»")),
+  } : {});
+  const UDIR = UL !== GAME.lang ? `lang="${UL}" dir="${UL === "ar" ? "rtl" : "ltr"}"` : "";
 
   const ICONS = {
     help: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M9.3 9.3a2.8 2.8 0 1 1 3.9 2.6c-.8.4-1.2.9-1.2 1.8v.6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="17.2" r="1.2" fill="currentColor"/></svg>',
@@ -163,7 +174,7 @@
     return d.toISOString().slice(0, 10);
   }
   function prettyDate(ds) {
-    return new Date(ds + "T12:00:00Z").toLocaleDateString(GAME.lang === "ar" ? "ar-EG" : "en-GB",
+    return new Date(ds + "T12:00:00Z").toLocaleDateString((GAME.uiLang || GAME.lang) === "ar" ? "ar-EG" : "en-GB",
       { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" });
   }
   function fmtClock(sec) {
@@ -326,9 +337,9 @@
     const leagueLinks = LEAGUES.map((l) =>
       `<a href="${GAME.root}${l.href}" lang="${l.lang}" dir="${l.lang === "ar" ? "rtl" : "ltr"}" class="${l.id === GAME.league ? "on" : ""}" ${l.id === GAME.league ? 'aria-current="page"' : ""}>${esc(l.label)}</a>`
     ).join("");
-    const modal = (id, title, body) => `
+    const modal = (id, title, body, sheetAttrs = "") => `
       <div class="modal" id="${id}" hidden role="dialog" aria-modal="true" aria-labelledby="${id}-title">
-        <div class="sheet">
+        <div class="sheet" ${sheetAttrs}>
           <div class="sheet-head">
             <h2 id="${id}-title">${title}</h2>
             <button class="icon-btn small" data-close aria-label="${T.close}">${ICONS.close}</button>
@@ -339,14 +350,14 @@
     document.getElementById("app").innerHTML = `
       <header class="masthead">
         <div class="mast-row">
-          <button class="icon-btn" id="btn-help" aria-label="${T.help}" title="${T.help}">${ICONS.help}</button>
+          <button class="icon-btn" id="btn-help" aria-label="${U.help}" title="${U.help}">${ICONS.help}</button>
           <div class="title">
-            <h1>${esc(GAME.title)}</h1>
-            <p class="edition" id="edition"></p>
+            <h1 dir="auto">${esc(GAME.title)}</h1>
+            <p class="edition" id="edition" ${UDIR}></p>
           </div>
           <div class="mast-actions">
-            <button class="icon-btn" id="btn-stats" aria-label="${T.stats}" title="${T.stats}">${ICONS.stats}</button>
-            <button class="icon-btn" id="btn-archive" aria-label="${T.archive}" title="${T.archive}">${ICONS.archive}</button>
+            <button class="icon-btn" id="btn-stats" aria-label="${U.stats}" title="${U.stats}">${ICONS.stats}</button>
+            <button class="icon-btn" id="btn-archive" aria-label="${U.archive}" title="${U.archive}">${ICONS.archive}</button>
           </div>
         </div>
         <nav class="leagues">${leagueLinks}</nav>
@@ -357,17 +368,17 @@
         <section class="album" id="album" hidden>
           <div class="grid" id="grid"></div>
         </section>
-        <aside class="panel" id="panel" hidden>
+        <aside class="panel" id="panel" hidden ${UDIR}>
           <div class="meter">
             <div class="pips" id="pips" aria-hidden="true"></div>
-            <p class="meter-text"><b id="guesses">9</b> ${T.guessesLeft}</p>
+            <p class="meter-text"><b id="guesses">9</b> ${U.guessesLeft}</p>
           </div>
           <div class="meter">
-            <p class="rarity"><b id="rarity">0</b> ${T.rarity}</p>
+            <p class="rarity"><b id="rarity">0</b> ${U.rarity}</p>
           </div>
           <div class="actions">
-            <button class="btn primary" id="btn-results" hidden>${T.seeResult}</button>
-            <button class="btn quiet" id="btn-giveup">${T.giveUp}</button>
+            <button class="btn primary" id="btn-results" hidden>${U.seeResult}</button>
+            <button class="btn quiet" id="btn-giveup">${U.giveUp}</button>
           </div>
           <p class="next" id="next-panel" hidden></p>
         </aside>
@@ -389,9 +400,9 @@
       </div>
 
       ${modal("m-answers", '<span class="pair" id="answers-q"></span>', '<p class="hint first" id="answers-count"></p><ul class="results answers" id="answers-list"></ul>')}
-      ${modal("m-stats", T.stats, '<div id="stats-body"></div>')}
-      ${modal("m-help", T.help, `<ul class="help">${T.helpItems.map((x) => `<li>${esc(x)}</li>`).join("")}</ul><p class="hint">${T.helpNote}</p>`)}
-      ${modal("m-archive", T.archive, '<ul class="archive" id="archive-list"></ul>')}
+      ${modal("m-stats", U.stats, '<div id="stats-body"></div>', UDIR)}
+      ${modal("m-help", U.help, `<ul class="help">${U.helpItems.map((x) => `<li>${esc(x)}</li>`).join("")}</ul><p class="hint">${U.helpNote}</p>`, UDIR)}
+      ${modal("m-archive", U.archive, '<ul class="archive" id="archive-list"></ul>', UDIR)}
       <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
     `;
   }
@@ -461,7 +472,7 @@
     return `<button class="sticker${placed}" data-i="${i}" style="--tilt:${TILT[i]}deg" aria-label="${esc(label + ": " + players[p][1])}" ${state.over ? "" : 'aria-disabled="true"'}>
       <span class="sticker-photo">${photoHtml(p, 240)}</span>
       <span class="sticker-name">${esc(players[p][1])}</span>
-      <span class="sticker-rar" title="${esc(T.rarity)}">${rarity(i, p)}</span>
+      <span class="sticker-rar" title="${esc(U.rarity)}">${rarity(i, p)}</span>
     </button>`;
   }
 
@@ -496,7 +507,7 @@
     const el = $("#next-panel");
     const tick = () => {
       const s = secondsToMidnight();
-      el.innerHTML = `${T.nextGrid} <b dir="ltr">${fmtClock(s)}</b>`;
+      el.innerHTML = `${U.nextGrid} <b dir="ltr">${fmtClock(s)}</b>`;
       if (s <= 1) setTimeout(() => location.reload(), 1500);
     };
     tick();
@@ -520,6 +531,36 @@
     openModal("#m-search");
   }
 
+  // Sound-alike search: Arabic typing finds a player stored with an English name
+  // ("كين" finds Kane, "جوميز" finds Gomez). Both spellings become a rough
+  // consonant skeleton and the typed words must start the name's words.
+  const AR_SOUND = { "ب": "b", "پ": "b", "ف": "f", "ڤ": "f", "ت": "t", "ط": "t", "ث": "t", "د": "d", "ض": "d", "ذ": "d",
+    "ج": "g", "غ": "g", "ك": "k", "خ": "k", "ق": "k", "س": "s", "ص": "s", "ز": "s", "ظ": "s", "ش": "s",
+    "م": "m", "ن": "n", "ر": "r" };
+  const LAT_SOUND = { b: "b", p: "b", f: "f", v: "f", t: "t", d: "d", g: "g", j: "g", k: "k", q: "k", s: "s", z: "s", m: "m", n: "n", r: "r" };
+  const squeeze = (x) => x.replace(/(.)\1+/g, "$1");
+  function soundAr(w) {
+    w = w.replace(/تش/g, "ش");
+    let out = "";
+    for (const ch of w) out += AR_SOUND[ch] || "";
+    return squeeze(out);
+  }
+  function soundLat(w) {
+    w = w.replace(/ph/g, "f").replace(/th/g, "t").replace(/sh|ch/g, "s").replace(/ck|kh|qu/g, "k")
+      .replace(/gh/g, "g").replace(/x/g, "ks").replace(/c(?=[eiy])/g, "s").replace(/c/g, "k");
+    let out = "";
+    for (const ch of w) out += LAT_SOUND[ch] || "";
+    return squeeze(out);
+  }
+  const hasArabic = (s) => /[\u0600-\u06FF]/.test(s);
+  let soundNames = null;
+  function soundOf(p) {
+    if (!soundNames) {
+      soundNames = players.map((pl) => norm(pl[2] || (hasArabic(pl[1]) ? "" : pl[1])).split(" ").map(soundLat).filter(Boolean));
+    }
+    return soundNames[p];
+  }
+
   function search(q) {
     const tokens = norm(q).split(" ").filter(Boolean);
     if (!tokens.length || tokens.join("").length < 2) return null;
@@ -528,8 +569,21 @@
       const n = normNames[p];
       if (tokens.every((t) => n.includes(t))) out.push(p);
     }
+    const direct = new Set(out);
+    const sounds = GAME.soundSearch && hasArabic(q) ? tokens.map(soundAr).filter(Boolean) : [];
+    if (sounds.join("").length >= 2) {
+      for (let p = 0; p < players.length && out.length < 300; p++) {
+        if (direct.has(p)) continue;
+        const words = soundOf(p);
+        if (words.length && sounds.every((t) => words.some((w) => w.startsWith(t)))) out.push(p);
+      }
+    }
     const first = tokens[0];
     const score = (p) => {
+      if (!direct.has(p)) {        // sound-alike: whole-word matches before partial ones
+        const words = soundOf(p);
+        return sounds.every((t) => words.includes(t)) ? 3 : 4;
+      }
       const n = normNames[p];
       if (n.startsWith(first)) return 0;
       if (n.includes(" " + first)) return 1;
@@ -614,7 +668,7 @@
       for (let c = 0; c < 3; c++) rows += state.cells[r * 3 + c] !== undefined ? "🟩" : "⬜";
       rows += "\n";
     }
-    return `${GAME.title} #${grid.n}\n${T.shareLine(filledCount(), totalRarity())}\n${rows}‎${location.origin + location.pathname}‎`;
+    return `${GAME.title} #${grid.n}\n${U.shareLine(filledCount(), totalRarity())}\n${rows}‎${location.origin + location.pathname}‎`;
   }
 
   function showStats() {
@@ -628,30 +682,30 @@
       }).join("");
       today = `
         <section class="today">
-          <h3>${T.todayResult}</h3>
+          <h3>${U.todayResult}</h3>
           <div class="today-row">
             <div class="mini-grid">${squares}</div>
             <div class="today-score">
-              <p class="big">${T.scoreLine(filledCount())}</p>
-              <p>${T.rarityLine(totalRarity())}</p>
+              <p class="big">${U.scoreLine(filledCount())}</p>
+              <p>${U.rarityLine(totalRarity())}</p>
             </div>
           </div>
-          <button class="btn primary wide" id="btn-share">${T.shareResult}</button>
-          <p class="hint">${T.tapCell}</p>
+          <button class="btn primary wide" id="btn-share">${U.shareResult}</button>
+          <p class="hint">${U.tapCell}</p>
         </section>`;
     }
     const stat = (v, l) => `<div class="stat"><b>${v}</b><span>${l}</span></div>`;
     $("#stats-body").innerHTML = `
       ${today}
       <div class="stat-row">
-        ${stat(st.played, T.played)}${stat(st.perfect, T.perfect)}${stat(st.streak, T.streak)}${stat(st.best, T.best)}
+        ${stat(st.played, U.played)}${stat(st.perfect, U.perfect)}${stat(st.streak, U.streak)}${stat(st.best, U.best)}
       </div>
       <p class="next" id="next-modal"></p>`;
     const share = $("#btn-share");
     if (share) share.addEventListener("click", doShare);
     openModal("#m-stats");
     const el = $("#next-modal");
-    const tick = () => { el.innerHTML = `${T.nextGrid} <b dir="ltr">${fmtClock(secondsToMidnight())}</b>`; };
+    const tick = () => { el.innerHTML = `${U.nextGrid} <b dir="ltr">${fmtClock(secondsToMidnight())}</b>`; };
     tick();
     clockTimer = setInterval(tick, 1000);
   }
@@ -669,7 +723,7 @@
       try { document.execCommand("copy"); } catch (e2) { /* ignore */ }
       ta.remove();
     }
-    toast(T.copied);
+    toast(U.copied);
   }
 
   function showAnswers(i) {
@@ -696,9 +750,9 @@
     const dates = Object.keys(GRIDS).filter((d) => d <= today).sort().reverse();
     $("#archive-list").innerHTML = dates.length ? dates.map((d) => {
       const s = readSaved(d);
-      const mark = s && s.over ? T.archiveDone(filledCount(s)) : s ? T.archiveStarted : "";
+      const mark = s && s.over ? U.archiveDone(filledCount(s)) : s ? U.archiveStarted : "";
       return `<li><a href="?d=${d}" class="${d === date ? "current" : ""}"><span class="arc-n">#${GRIDS[d].n}</span><span class="arc-d">${esc(prettyDate(d))}</span><span class="arc-m">${mark}</span></a></li>`;
-    }).join("") : `<li class="none">${T.archiveEmpty}</li>`;
+    }).join("") : `<li class="none">${U.archiveEmpty}</li>`;
     openModal("#m-archive");
   }
 
@@ -760,7 +814,7 @@
     $("#btn-archive").addEventListener("click", () => { if (GRIDS) showArchive(); });
     $("#btn-results").addEventListener("click", showStats);
     $("#btn-giveup").addEventListener("click", () => {
-      if (!confirm(T.confirmGiveUp)) return;
+      if (!confirm(U.confirmGiveUp)) return;
       state.over = true; save(); render(); showStats();
     });
   }
@@ -785,7 +839,7 @@
     crit = DATA.criteria;
     sets = {};
     for (const id in crit) sets[id] = new Set(crit[id].m);
-    normNames = players.map((p) => norm(p[1] + " " + (p[2] || "")));
+    normNames = players.map((p) => norm(p[1] + " " + (p[2] || "") + " " + (p[6] || "")));
     players.forEach((p, i) => { byId[p[0]] = i; });
 
     const today = cairoToday();
@@ -801,7 +855,7 @@
     if (![...grid.rows, ...grid.cols].every((id) => crit[id])) return fail(T.gridGone);
 
     load();
-    $("#edition").textContent = T.edition(grid.n, prettyDate(date));
+    $("#edition").textContent = U.edition(grid.n, prettyDate(date));
     $("#updated").textContent = DATA.updated ? T.updated(DATA.updated) : "";
     $("#status").hidden = true;
     $("#album").hidden = false;

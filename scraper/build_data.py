@@ -106,7 +106,8 @@ LEAGUES = {
         "salt": "egypt-grid",
     },
     "epl": {
-        "lang": "en",
+        "lang": "ar",
+        "arz_names": False,                # player names: standard Arabic or English, not Egyptian-Arabic
         "out_dir": "data/epl",
         "league_qids": ["Q9448"],          # Premier League
         "league_label_en": "Premier League",
@@ -264,6 +265,7 @@ def fetch_raw(cfg):
             d = P[qid(r["p"])]
             d["en"] = d["en"] or val(r, "en")
             d["ar"] = d["ar"] or val(r, "ar") or val(r, "arz")
+            d["ar_std"] = d.get("ar_std") or val(r, "ar")  # standard Arabic only (no Egyptian-Arabic fallback)
             d["links"] = int(val(r, "links") or 0)
             if val(r, "img") and not d.get("img"):
                 # Commons file name, e.g. "Mohamed Salah 2018.jpg"
@@ -618,10 +620,20 @@ def build_data(raw, cfg):
     for pid in kept:
         d = raw["players"][pid]
         img = local_photo(pid) or d.get("img") or ""
-        shown = (d["ar"] or d["en"]) if lang == "ar" else (d["en"] or d["ar"])
+        plang = cfg.get("player_lang") or lang   # player names can stay in another language
+        alias = ""
+        if plang == "ar" and not cfg.get("arz_names", True) and "ar_std" in d:
+            # show only a proper Arabic name, else English; an Egyptian-Arabic name is kept for search
+            shown = d["ar_std"] or d["en"] or d["ar"]
+            alias = d["ar"] if d["ar"] and d["ar"] != shown else ""
+        else:
+            shown = (d["ar"] or d["en"]) if plang == "ar" else (d["en"] or d["ar"])
         born = d.get("birth") or ""
         year = int(born[:4]) if born[:4].isdigit() else 0
-        players_out.append([pid, shown, d["en"] or "", d["links"], img, year])
+        row = [pid, shown, d["en"] or "", d["links"], img, year]
+        if alias:
+            row.append(alias)            # extra search name, never shown
+        players_out.append(row)
 
     log(f"{len(players_out)} players, {len(criteria)} criteria "
         f"({sum(1 for c in criteria.values() if c['t'] == 'club')} league clubs)")
