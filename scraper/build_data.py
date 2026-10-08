@@ -87,9 +87,9 @@ COMMON_DEFAULTS = {
     "known_links": 10,           # a "well-known" player has at least this many Wikipedia articles
                                  # (with page views on, the same NUMBER of players counts as well-known,
                                  #  but they are chosen by page views)
-    "fame": "views",             # "views": Wikipedia page views; "links": number of Wikipedia articles
+    "fame": "links",             # "links": number of Wikipedia articles; "views": Wikipedia page views (optional)
     "view_weights": {"ar": 2, "en": 1},  # Arabic page views count double (the game's audience)
-    "view_months": 12,           # page views over this many past months
+    "view_days": 60,             # page views over this many past days (Wikipedia's API gives up to 60)
     "view_retry_days": 30,       # how long cached page views are kept
     "view_minutes": 15,          # max time per run for page-view lookups (the rest next run)
     "badge_minutes": 20,         # max time per run for TheSportsDB crest lookups
@@ -305,8 +305,7 @@ def fetch_raw(cfg):
             del P[p]
     log(f"  {len(P)} players after filters")
 
-    log("Wikipedia article titles (for page views)...")
-    for batch in chunks(sorted(P), 150):
+    for batch in chunks(sorted(P) if cfg.get("fame") == "views" else [], 150):   # only for page views
         rows = try_query("articles", f"""
             SELECT ?p ?site ?title WHERE {{
               VALUES ?p {{ {values(batch)} }}
@@ -1072,32 +1071,66 @@ def sportsdb_badge(name_en, country_en):
     return ""
 
 
-PAGEVIEWS = "https://wikimedia.org/api/rest_v1/metrics/pageviews/per-article/{wiki}.wikipedia/all-access/user/{title}/monthly/{start}/{end}"
-
-
 class Throttled(Exception):
     pass
 
 
-def page_views(wiki, title, start, end):
-    """Total views of one Wikipedia article between two months.
-    Returns None if the request failed; raises Throttled when Wikimedia says slow down."""
-    url = PAGEVIEWS.format(wiki=wiki, title=urllib.parse.quote(title.replace(" ", "_"), safe=""),
-                           start=start, end=end)
-    for attempt in range(2):
-        try:
-            req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-            with urllib.request.urlopen(req, timeout=20) as r:
-                return sum(int(i.get("views", 0)) for i in json.load(r).get("items", []))
-        except urllib.error.HTTPError as e:
-            if e.code == 404:          # no views recorded
-                return 0
-            if e.code in (403, 429):
-                raise Throttled(e.code)
-            time.sleep(2)
-        except Exception:  # noqa: BLE001
-            time.sleep(2)
-    return None
+def wiki_views_batch(wiki, titles, days):
+    """Page views over the last `days` days (max 60) for up to 50 article titles, in one
+    request to Wikipedia's API (prop=pageviews, following 'continue' if Wikipedia splits the
+    answer). Returns {title: views}; None if the request failed. Raises Throttled if Wikipedia
+    keeps asking us to slow down."""
+    params = {"action": "query", "format": "json", "formatversion": "2", "prop": "pageviews",
+              "pvipdays": str(min(60, days)), "redirects": "1", "maxlag": "5", "titles": "|".join(titles)}
+    url = f"https://{wiki}.wikipedia.org/w/api.php"
+    alias, views = {}, {}
+    cont = {}
+    for _ in range(20):                    # continuation pages
+        data = None
+        for attempt in range(4):
+            try:
+                body = urllib.parse.urlencode(dict(params, **cont)).encode()
+                req = urllib.request.Request(url, data=body, headers={
+                    "User-Agent": USER_AGENT, "Content-Type": "application/x-www-form-urlencoded"})
+                with urllib.request.urlopen(req, timeout=40) as r:
+                    data = json.load(r)
+                if "error" in data:        # e.g. maxlag: the servers are busy, wait a little
+                    data = None
+                    time.sleep(5 * (attempt + 1))
+                    continue
+                break
+            except urllib.error.HTTPError as e:
+                if e.code in (429, 403):
+                    if attempt == 3:
+                        raise Throttled(e.code)
+                    wait = int(e.headers.get("Retry-After") or 0) or 20 * (attempt + 1)
+                    log(f"  {wiki} pageviews: HTTP {e.code}, waiting {min(wait, 120)}s")
+                    time.sleep(min(wait, 120))
+                else:
+                    time.sleep(5)
+            except Exception:  # noqa: BLE001
+                time.sleep(5)
+        if data is None:
+            return None
+        q = data.get("query", {})
+        for k in ("normalized", "redirects"):    # "a_b" -> "A b", redirects -> real article
+            for m in q.get(k, []):
+                alias[m["from"]] = m["to"]
+        for pg in q.get("pages", []):
+            pv = pg.get("pageviews")
+            if pv:
+                views[pg["title"]] = views.get(pg["title"], 0) + sum(v or 0 for v in pv.values())
+        if "continue" not in data:
+            break
+        cont = data["continue"]
+        time.sleep(0.5)
+    out = {}
+    for t in titles:
+        final = t
+        for _ in range(3):
+            final = alias.get(final, final)
+        out[t] = views.get(final, 0)
+    return out
 
 
 def rank_by_views(data, raw, cfg, out_dir, live):
@@ -1116,60 +1149,57 @@ def rank_by_views(data, raw, cfg, out_dir, live):
     except (OSError, ValueError):
         cache = {}
     today = dt.date.today()
-    first = (today.replace(day=1) - dt.timedelta(days=1)).replace(day=1)   # last full month
-    months = cfg.get("view_months", 12)
-    y, m = first.year, first.month - (months - 1)
-    while m < 1:
-        y, m = y - 1, m + 12
-    start, end = f"{y:04d}{m:02d}0100", f"{first.year:04d}{first.month:02d}0100"
+    days = cfg.get("view_days", 60)
     keep = dt.timedelta(days=cfg.get("view_retry_days", 30))
     weights = cfg.get("view_weights", {"ar": 2, "en": 1})
     raw_players = raw.get("players", {}) if raw else {}
 
-    jobs = []
+    todo = {}   # pid -> {wiki: title}
     for row in players:
         pid = row[0]
         hit = cache.get(pid)
-        if hit and dt.date.fromisoformat(hit["t"]) + keep > today:
+        if hit and hit.get("d") == days and dt.date.fromisoformat(hit["t"]) + keep > today:
             continue
-        titles = (raw_players.get(pid) or {}).get("wiki") or {}
-        if titles and live:
-            jobs.append((pid, titles))
+        titles = {w: t for w, t in ((raw_players.get(pid) or {}).get("wiki") or {}).items() if w in weights}
+        if live:
+            if titles:
+                todo[pid] = titles
+            elif pid in raw_players:     # no Arabic or English article: no views
+                cache[pid] = {"v": {}, "t": today.isoformat(), "d": days}
 
-    if jobs:
-        # Most-famous players first, a small pause between requests, a time limit, and a full
-        # stop if Wikimedia throttles us. Whatever is done is cached; the rest is done next run.
+    if todo:
         budget = time.time() + 60 * cfg.get("view_minutes", 15)
-        log(f"Page views: looking up {len(jobs)} players (max {cfg.get('view_minutes', 15)} min)...")
-        done = failed = 0
+        log(f"Page views (last {days} days): {len(todo)} players, 50 per request...")
+        got = defaultdict(dict)
         stopped = ""
-        for pid, titles in jobs:
-            if time.time() > budget:
-                stopped = "time limit reached"
-                break
-            got = {}
-            try:
-                for w, t in titles.items():
-                    if w in weights:
-                        got[w] = page_views(w, t, start, end)
-                        time.sleep(0.05)
-            except Throttled as e:
-                stopped = f"Wikimedia asked us to slow down (HTTP {e})"
-                break
-            if any(v is None for v in got.values()):
-                failed += 1
-                if failed >= 50 and done < failed:
-                    stopped = "too many failed requests"
+        for wiki in weights:
+            pairs = [(pid, t[wiki]) for pid, t in todo.items() if wiki in t]
+            for batch in chunks(pairs, 50):
+                if time.time() > budget:
+                    stopped = "time limit reached"
                     break
-                continue
-            cache[pid] = {"v": got, "t": today.isoformat()}
-            done += 1
-        log(f"  page views: {done} looked up, {failed} failed" + (f"; stopped: {stopped}" if stopped else ""))
+                try:
+                    res = wiki_views_batch(wiki, [t for _, t in batch], days)
+                except Throttled as e:
+                    stopped = f"Wikipedia asked us to slow down (HTTP {e})"
+                    break
+                if res is not None:
+                    for pid, t in batch:
+                        got[pid][wiki] = res.get(t, 0)
+                time.sleep(1)            # be polite
+            if stopped:
+                break
+        done = 0
+        for pid, titles in todo.items():
+            if all(w in got.get(pid, {}) for w in titles):   # only fully looked-up players are cached
+                cache[pid] = {"v": got[pid], "t": today.isoformat(), "d": days}
+                done += 1
+        log(f"  page views: {done}/{len(todo)} players looked up" + (f"; stopped: {stopped}" if stopped else ""))
         os.makedirs(out_dir, exist_ok=True)
         with open(path, "w", encoding="utf-8") as f:
             json.dump(cache, f, ensure_ascii=False, sort_keys=True, indent=0)
 
-    have = sum(1 for row in players if row[0] in cache)
+    have = sum(1 for row in players if (cache.get(row[0]) or {}).get("d") == days)
     if have < 0.8 * len(players):
         log(f"  page views for only {have}/{len(players)} players - keeping the article-count order")
         return

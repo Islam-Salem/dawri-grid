@@ -98,11 +98,9 @@ publishing an app, remove `"thesportsdb"` from `badge_sources` in `config.json` 
 
 ## Popularity
 
-Players are ranked by how often their Arabic and English Wikipedia pages were viewed over the
-past 12 months (Arabic views count double, since that's the game's audience). This decides the
-answer revealed after giving up, the order of the answer list, and which players count as
-"well-known" when grids are built. Views are cached in `views_cache.json` and refreshed every 30
-days. Set `"fame": "links"` in `config.json` to go back to counting Wikipedia articles instead.
+Players are ranked by how many Wikipedia language editions have an article about them (a proxy
+for fame). This decides the answer revealed after giving up, the order of the answer list, and
+which players count as "well-known" (`known_links`) when grids are built.
 
 ## Running locally
 
