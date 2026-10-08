@@ -96,11 +96,6 @@ Clubs with none (or whose image fails to load) show a shield in the club's colou
 TheSportsDB lookups are cached in `badge_cache.json`. Club crests are trademarks: before adding ads or
 publishing an app, remove `"thesportsdb"` from `badge_sources` in `config.json` (per league).
 
-## Rarity
-
-Players are ranked by how many Wikipedia language editions have an article on them (a proxy for fame).
-Picking the most famous valid answer scores 0, the most obscure scores 100.
-
 ## Running locally
 
 ```

@@ -25,7 +25,6 @@
       loading: "جارٍ تحميل شبكة اليوم…",
       edition: (n, d) => `الشبكة رقم ${n} · ${d}`,
       guessesLeft: "محاولات متبقية",
-      rarity: "نقاط الندرة",
       giveUp: "استسلم وأظهر الإجابات",
       seeResult: "نتيجتك",
       confirmGiveUp: "سيتم إنهاء شبكة اليوم وإظهار الإجابات. هل تريد الاستسلام؟",
@@ -39,8 +38,8 @@
       shareResult: "شارك النتيجة",
       todayResult: "نتيجة اليوم",
       scoreLine: (n) => `${n} من 9`,
-      rarityLine: (r) => `الندرة ${r}`,
-      shareLine: (n, r) => `${n}/9 · الندرة ${r}`,
+      triesLine: (k) => `استخدمت ${k} من ٩ محاولات`,
+      shareLine: (n, k) => `${n}/9 · ${k} محاولات`,
       played: "شبكات لُعبت", perfect: "شبكات كاملة", streak: "السلسلة الحالية", best: "أطول سلسلة",
       nextGrid: "الشبكة التالية بعد",
       tapCell: "اضغط على أي خانة لرؤية كل الإجابات الصحيحة.",
@@ -62,7 +61,6 @@
         "مثال: صف «الأهلي» وعمود «الزمالك» يعني لاعبًا لعب للناديين في أي وقت من مسيرته.",
         "معك ٩ محاولات فقط، والإجابة الخاطئة تُحتسب محاولة.",
         "لا يمكن استخدام نفس اللاعب في أكثر من خانة.",
-        "الندرة: كلما كان لاعبك أقل شهرة بين الإجابات الصحيحة زادت نقاطك، من ٠ إلى ١٠٠ لكل خانة.",
         "شبكة جديدة كل يوم عند منتصف الليل بتوقيت القاهرة.",
       ],
       helpNote: "البيانات من ويكي بيانات وقد تكون ناقصة لبعض اللاعبين.",
@@ -73,7 +71,6 @@
       loading: "Loading today's grid…",
       edition: (n, d) => `Grid ${n} · ${d}`,
       guessesLeft: "guesses left",
-      rarity: "rarity points",
       giveUp: "Give up and show answers",
       seeResult: "Your result",
       confirmGiveUp: "This ends today's grid and shows the answers. Give up?",
@@ -87,8 +84,8 @@
       shareResult: "Share result",
       todayResult: "Today's result",
       scoreLine: (n) => `${n} of 9`,
-      rarityLine: (r) => `Rarity ${r}`,
-      shareLine: (n, r) => `${n}/9 · Rarity ${r}`,
+      triesLine: (k) => `Used ${k} of 9 guesses`,
+      shareLine: (n, k) => `${n}/9 · ${k} guesses`,
       played: "Grids played", perfect: "Perfect grids", streak: "Current streak", best: "Best streak",
       nextGrid: "Next grid in",
       tapCell: "Tap any square to see every correct answer.",
@@ -110,7 +107,6 @@
         "Example: row “Arsenal” and column “Chelsea” means a player who played for both clubs at any point in their career.",
         "You have 9 guesses in total, and a wrong answer uses one up.",
         "Each player can only be used once.",
-        "Rarity: the less famous your player is among the correct answers, the more points you score, from 0 to 100 per square.",
         "A new grid every day at midnight Cairo time.",
       ],
       helpNote: "Data comes from Wikidata and may be incomplete for some players.",
@@ -249,13 +245,6 @@
     small.forEach((p) => { if (big.has(p)) out.push(p); });
     return out.sort((x, y) => x - y); // players are stored most-famous first
   }
-  function rarity(i, p, g = grid) {
-    const ans = answersFor(i, g);
-    if (ans.length <= 1) return 100;
-    return Math.round((100 * Math.max(0, ans.indexOf(p))) / (ans.length - 1));
-  }
-  const totalRarity = (s = state, g = grid) =>
-    Object.entries(s.cells).reduce((sum, [i, p]) => sum + rarity(+i, p, g), 0);
 
   // ---------------------------------------------------------------- badges
   const PALETTE = ["#C8102E", "#1E6F50", "#1F4E9C", "#E2A400", "#6B2D8F", "#0E7C86", "#B5441B", "#2B2B2B"];
@@ -373,9 +362,6 @@
             <div class="pips" id="pips" aria-hidden="true"></div>
             <p class="meter-text"><b id="guesses">9</b> ${U.guessesLeft}</p>
           </div>
-          <div class="meter">
-            <p class="rarity"><b id="rarity">0</b> ${U.rarity}</p>
-          </div>
           <div class="actions">
             <button class="btn primary" id="btn-results" hidden>${U.seeResult}</button>
             <button class="btn quiet" id="btn-giveup">${U.giveUp}</button>
@@ -472,7 +458,6 @@
     return `<button class="sticker${placed}" data-i="${i}" style="--tilt:${TILT[i]}deg" aria-label="${esc(label + ": " + players[p][1])}" ${state.over ? "" : 'aria-disabled="true"'}>
       <span class="sticker-photo">${photoHtml(p, 240)}</span>
       <span class="sticker-name">${esc(players[p][1])}</span>
-      <span class="sticker-rar" title="${esc(U.rarity)}">${rarity(i, p)}</span>
     </button>`;
   }
 
@@ -494,7 +479,6 @@
     $("#pips").innerHTML = Array.from({ length: TOTAL_GUESSES }, (_, k) =>
       `<span class="pip${k < state.guesses ? " left" : ""}"></span>`).join("");
     $("#guesses").textContent = state.guesses;
-    $("#rarity").textContent = totalRarity();
     $("#btn-giveup").hidden = state.over;
     $("#btn-results").hidden = !state.over;
     const next = $("#next-panel");
@@ -668,7 +652,7 @@
       for (let c = 0; c < 3; c++) rows += state.cells[r * 3 + c] !== undefined ? "🟩" : "⬜";
       rows += "\n";
     }
-    return `${GAME.title} #${grid.n}\n${U.shareLine(filledCount(), totalRarity())}\n${rows}‎${location.origin + location.pathname}‎`;
+    return `${GAME.title} #${grid.n}\n${U.shareLine(filledCount(), TOTAL_GUESSES - state.guesses)}\n${rows}‎${location.origin + location.pathname}‎`;
   }
 
   function showStats() {
@@ -687,7 +671,7 @@
             <div class="mini-grid">${squares}</div>
             <div class="today-score">
               <p class="big">${U.scoreLine(filledCount())}</p>
-              <p>${U.rarityLine(totalRarity())}</p>
+              <p>${U.triesLine(TOTAL_GUESSES - state.guesses)}</p>
             </div>
           </div>
           <button class="btn primary wide" id="btn-share">${U.shareResult}</button>
@@ -739,7 +723,7 @@
         p === mine ? `<b class="tag-mine">${T.yourAnswer}</b>` : p === shownTop && T.topAnswer ? `<b class="tag-top">${T.topAnswer}</b>` : "",
         en && en !== name ? esc(en) : "", year ? T.born(year) : "",
       ].filter(Boolean).join(" · ");
-      return `<li class="${p === mine ? "mine" : ""}">${photoHtml(p, 80)}<span class="who"><span class="who-name">${esc(name)}</span><span class="who-sub">${sub}</span></span><span class="who-rar">${rarity(i, p)}</span></li>`;
+      return `<li class="${p === mine ? "mine" : ""}">${photoHtml(p, 80)}<span class="who"><span class="who-name">${esc(name)}</span><span class="who-sub">${sub}</span></span></li>`;
     }).join("");
     openModal("#m-answers");
     $("#answers-list").scrollTop = 0;
