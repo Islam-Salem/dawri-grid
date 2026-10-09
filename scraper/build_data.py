@@ -384,12 +384,14 @@ def fetch_raw(cfg):
     if nt:
         rows = try_query("national team", f"""
             SELECT DISTINCT ?t ?l WHERE {{
-              ?t wdt:P31 wd:{NATIONAL_TEAM_CLASS} . {{ ?t wdt:P17 wd:{nt} }} UNION {{ ?t wdt:P1532 wd:{nt} }}
+              ?t wdt:P31/wdt:P279* wd:{NATIONAL_TEAM_CLASS} .
+              {{ ?t wdt:P17 wd:{nt} }} UNION {{ ?t wdt:P1532 wd:{nt} }}
               OPTIONAL {{ ?t rdfs:label ?l FILTER(lang(?l)="en") }}
             }}""")
         # the senior men's team only: no youth, Olympic, B or women's teams
         youth = re.compile(r"under|u-?\d\d|olympic|women|ladies|\bb\b|amateur|futsal|beach", re.I)
         raw["national_team"] = sorted({qid(r["t"]) for r in rows if not youth.search(val(r, "l") or "")})
+        log(f"  senior national team items: {raw['national_team']}")
     return raw
 
 
@@ -694,6 +696,7 @@ def build_data(raw, cfg):
         f"({sum(1 for c in criteria.values() if c['t'] == 'club')} league clubs)")
     data = {"updated": raw["fetched"], "players": players_out, "criteria": criteria}
     merge_countries(data)
+    add_members(data, cfg)
     add_decades(data, cfg)
     apply_config(criteria, cfg)
     return data
@@ -717,6 +720,19 @@ def merge_countries(data):
             else:
                 crit[b] = crit[a]
             del crit[a]
+
+
+def add_members(data, cfg):
+    """Fixes for gaps in Wikidata, from config.json:
+    "add_members": {"nt:home": ["Q448937"], "club:Q223566": ["Q123"]} adds those players."""
+    extra = cfg.get("add_members") or {}
+    if not extra:
+        return
+    index = {p[0]: i for i, p in enumerate(data["players"])}
+    for cid, pids in extra.items():
+        if cid in data["criteria"]:
+            m = set(data["criteria"][cid]["m"]) | {index[p] for p in pids if p in index}
+            data["criteria"][cid]["m"] = sorted(m)
 
 
 def add_decades(data, cfg):
@@ -1430,6 +1446,7 @@ def regrid(name, cfg, args):
     with open(os.path.join(out_dir, "grids.json"), encoding="utf-8") as f:
         existing = json.load(f)
     merge_countries(data)
+    add_members(data, cfg)
     add_decades(data, cfg)
     apply_config(data["criteria"], cfg)
     today = dt.date.fromisoformat(args.today) if args.today else cairo_today()
