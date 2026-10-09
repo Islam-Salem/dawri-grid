@@ -1168,5 +1168,18 @@
 "pos:mf",
 "abroad:Q235"
 ]
+},
+"2027-01-07": {
+"cols": [
+"club:Q18716",
+"club:Q50602",
+"club:Q1130849"
+],
+"n": 91,
+"rows": [
+"abroad:Q142",
+"abroad:Q148",
+"decade:1990"
+]
 }
 }

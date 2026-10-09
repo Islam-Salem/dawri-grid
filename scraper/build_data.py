@@ -48,6 +48,7 @@ FOOTBALLER = "Q937857"
 NATIONAL_TEAM_CLASS = "Q6979593"
 CLUB_CLASSES = ["Q476028", "Q847017", "Q12973014"]  # football club, sports club, sports team
 FOOTBALL_MANAGER = "Q628099"     # occupation: association football manager
+FOOTBALLER = "Q937857"           # occupation: association football player
 POSITION_ROOTS = {"Q201330": "gk", "Q336286": "df", "Q193592": "mf", "Q280658": "fw"}
 NOT_FOOTBALL = ("handball", "basketball", "volleyball", "futsal", "beach soccer", "water polo",
                 "لكرة اليد", "لكرة السلة", "للكرة الطائرة", "لكرة الطائرة", "لكرة الصالات")
@@ -572,8 +573,14 @@ def build_data(raw, cfg):
         return t in league_clubs or (cfg["clubs_by_country"] and in_home(t))
 
     # Keep players who played for at least one league club.
+    def footballer(d):
+        """Actors and others wrongly linked to a club have occupations, but not 'footballer'."""
+        occ = d.get("occ") or []
+        return not occ or FOOTBALLER in occ or FOOTBALL_MANAGER in occ
+
     kept = [pid for pid, d in raw["players"].items()
-            if not d["female"] and (d["ar"] or d["en"]) and any(is_league_club(t) for t in d["teams"])]
+            if not d["female"] and (d["ar"] or d["en"]) and footballer(d)
+            and any(is_league_club(t) for t in d["teams"])]
     # Most famous first: index = fame rank (used for rarity).
     kept.sort(key=lambda p: (-raw["players"][p]["links"], raw["players"][p]["en"] or ""))
     index = {p: i for i, p in enumerate(kept)}
@@ -696,8 +703,8 @@ def build_data(raw, cfg):
         f"({sum(1 for c in criteria.values() if c['t'] == 'club')} league clubs)")
     data = {"updated": raw["fetched"], "players": players_out, "criteria": criteria}
     merge_countries(data)
-    add_members(data, cfg)
     add_decades(data, cfg)
+    add_members(data, cfg)
     apply_config(criteria, cfg)
     return data
 
@@ -723,12 +730,15 @@ def merge_countries(data):
 
 
 def add_members(data, cfg):
-    """Fixes for gaps in Wikidata, from config.json:
-    "add_members": {"nt:home": ["Q448937"], "club:Q223566": ["Q123"]} adds those players."""
-    extra = cfg.get("add_members") or {}
-    if not extra:
-        return
+    """Fixes for gaps and mistakes in Wikidata, from config.json:
+    "add_members": {"nt:home": ["Q448937"], "club:Q223566": ["Q123"]} adds those players;
+    "remove_players": ["Q169963"] takes people who are not footballers out of every square."""
     index = {p[0]: i for i, p in enumerate(data["players"])}
+    gone = {index[p] for p in cfg.get("remove_players") or [] if p in index}
+    if gone:
+        for c in data["criteria"].values():
+            c["m"] = [i for i in c["m"] if i not in gone]
+    extra = cfg.get("add_members") or {}
     for cid, pids in extra.items():
         if cid in data["criteria"]:
             m = set(data["criteria"][cid]["m"]) | {index[p] for p in pids if p in index}
@@ -1446,8 +1456,8 @@ def regrid(name, cfg, args):
     with open(os.path.join(out_dir, "grids.json"), encoding="utf-8") as f:
         existing = json.load(f)
     merge_countries(data)
-    add_members(data, cfg)
     add_decades(data, cfg)
+    add_members(data, cfg)
     apply_config(data["criteria"], cfg)
     today = dt.date.fromisoformat(args.today) if args.today else cairo_today()
     grids = build_grids(data, cfg, existing, today, keep_future=False)

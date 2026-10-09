@@ -1080,15 +1080,15 @@
 },
 "2026-12-31": {
 "cols": [
+"club:Q2084802",
 "club:Q286504",
-"club:Q223566",
-"club:Q1329368"
+"club:Q223566"
 ],
 "n": 84,
 "rows": [
-"abroad:Q817",
-"abroad:Q39",
-"nt:home"
+"nt:home",
+"abroad:Q45",
+"decade:1980"
 ]
 },
 "2027-01-01": {
