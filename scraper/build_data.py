@@ -47,6 +47,7 @@ FEMALE = "Q6581072"
 FOOTBALLER = "Q937857"
 NATIONAL_TEAM_CLASS = "Q6979593"
 CLUB_CLASSES = ["Q476028", "Q847017", "Q12973014"]  # football club, sports club, sports team
+FOOTBALL_MANAGER = "Q628099"     # occupation: association football manager
 POSITION_ROOTS = {"Q201330": "gk", "Q336286": "df", "Q193592": "mf", "Q280658": "fw"}
 NOT_FOOTBALL = ("handball", "basketball", "volleyball", "futsal", "beach soccer", "water polo",
                 "لكرة اليد", "لكرة السلة", "للكرة الطائرة", "لكرة الطائرة", "لكرة الصالات")
@@ -56,11 +57,19 @@ TEXT = {
         "pos": {"gk": "حارس مرمى", "df": "مدافع", "mf": "لاعب وسط", "fw": "مهاجم"},
         "abroad": "لعب في {}",
         "nat": "من {}",
+        "bplace": "مواليد {}",
+        "coach": "عمل مدربًا",
+        "decade": {1960: "مواليد الستينات", 1970: "مواليد السبعينات", 1980: "مواليد الثمانينات",
+                   1990: "مواليد التسعينات", 2000: "مواليد الألفينات"},
     },
     "en": {
         "pos": {"gk": "Goalkeeper", "df": "Defender", "mf": "Midfielder", "fw": "Forward"},
         "abroad": "Played in {}",
         "nat": "{}",
+        "bplace": "Born in {}",
+        "coach": "Became a coach",
+        "decade": {1960: "Born in the 1960s", 1970: "Born in the 1970s", 1980: "Born in the 1980s",
+                   1990: "Born in the 1990s", 2000: "Born in the 2000s"},
     },
 }
 
@@ -74,6 +83,10 @@ COMMON_DEFAULTS = {
     "min_abroad": 15,        # played-in-country criteria
     "min_position": 8,
     "min_award": 6,
+    "min_birthplace": 8,     # birthplace rows ("born in Alexandria")
+    "min_coach": 8,          # "became a coach"
+    "min_decade": 10,        # birth-decade rows
+    "min_known_row": 6,      # a row is only used if it has this many well-known modern players
     "days_ahead": 90,
     "photo_sources": ["commons_category", "thesportsdb"],  # extra photo sources, in order
     "badge_sources": ["thesportsdb", "wikidata"],  # club crest sources, in order
@@ -128,8 +141,8 @@ LEAGUES = {
         "home_countries": ["Q145", "Q21", "Q25"],  # United Kingdom, England, Wales
         "clubs_by_country": False,         # only clubs that played in the Premier League
         "extra_player_country": None,
-        "national_team_country": None,
-        "national_team_label": None,
+        "national_team_country": "Q21",    # England
+        "national_team_label": "منتخب إنجلترا",
         "skip_nationalities": [],
         "wikipedia_photo_wikis": ["en.wikipedia.org"],
         "min_birth_year": 1960,
@@ -259,7 +272,7 @@ def fetch_raw(cfg):
     P = raw["players"]
     for p in players:
         P[p] = {"en": None, "ar": None, "links": 0, "female": False,
-                "teams": [], "cit": [], "sport": [], "pos": [], "awards": []}
+                "teams": [], "cit": [], "sport": [], "pos": [], "awards": [], "bplace": [], "occ": []}
 
     log("Player names...")
     for batch in chunks(sorted(players), 150):
@@ -329,13 +342,14 @@ def fetch_raw(cfg):
         rows = try_query("props", f"""
             SELECT ?p ?prop ?v WHERE {{
               VALUES ?p {{ {values(batch)} }}
-              VALUES ?prop {{ wdt:P27 wdt:P1532 wdt:P413 wdt:P166 }}
+              VALUES ?prop {{ wdt:P27 wdt:P1532 wdt:P413 wdt:P166 wdt:P19 wdt:P106 }}
               ?p ?prop ?v .
             }}""")
-        key = {"P27": "cit", "P1532": "sport", "P413": "pos", "P166": "awards"}
+        key = {"P27": "cit", "P1532": "sport", "P413": "pos", "P166": "awards", "P19": "bplace", "P106": "occ"}
         for r in rows:
             k = key[qid(r["prop"])]
             d = P[qid(r["p"])]
+            d.setdefault(k, [])
             v = qid(r["v"])
             if v not in d[k]:
                 d[k].append(v)
@@ -346,7 +360,8 @@ def fetch_raw(cfg):
     log("Team / country / award details...")
     item_ids = set()
     for d in P.values():
-        item_ids |= set(d["teams"]) | set(d["cit"]) | set(d["sport"]) | set(d["awards"])
+        item_ids |= (set(d["teams"]) | set(d["cit"]) | set(d["sport"]) | set(d["awards"])
+                     | set(d.get("bplace", [])))
     fetch_items(raw, item_ids)
     countries = {c for i in raw["items"].values() for c in i["country"]}
     if cfg.get("national_team_country"):
@@ -368,10 +383,13 @@ def fetch_raw(cfg):
     nt = cfg.get("national_team_country")
     if nt:
         rows = try_query("national team", f"""
-            SELECT DISTINCT ?t WHERE {{
+            SELECT DISTINCT ?t ?l WHERE {{
               ?t wdt:P31 wd:{NATIONAL_TEAM_CLASS} . {{ ?t wdt:P17 wd:{nt} }} UNION {{ ?t wdt:P1532 wd:{nt} }}
+              OPTIONAL {{ ?t rdfs:label ?l FILTER(lang(?l)="en") }}
             }}""")
-        raw["national_team"] = sorted({qid(r["t"]) for r in rows})
+        # the senior men's team only: no youth, Olympic, B or women's teams
+        youth = re.compile(r"under|u-?\d\d|olympic|women|ladies|\bb\b|amateur|futsal|beach", re.I)
+        raw["national_team"] = sorted({qid(r["t"]) for r in rows if not youth.search(val(r, "l") or "")})
     return raw
 
 
@@ -601,6 +619,15 @@ def build_data(raw, cfg):
             aid = f"award:{a}"
             members[aid].add(i)
             meta[aid] = ("award", name_of(items.get(a), lang) or a)
+        for c in d.get("bplace", [])[:1]:          # place of birth (city)
+            bid = f"bplace:{c}"
+            name = name_of(items.get(c), lang)
+            if name:
+                members[bid].add(i)
+                meta[bid] = ("bplace", txt["bplace"].format(re.sub(r"\s*\(.*?\)", "", name).strip()))
+        if FOOTBALL_MANAGER in d.get("occ", []):
+            members["coach:yes"].add(i)
+            meta["coach:yes"] = ("coach", txt["coach"])
 
     def flag_of(country):
         return (items.get(country) or {}).get("flag") or ""
@@ -611,6 +638,9 @@ def build_data(raw, cfg):
         out = {}
         if typ in ("nat", "abroad"):
             out["f"] = flag_of(ref)
+        elif typ == "bplace":
+            countries = (items.get(ref) or {}).get("country") or []
+            out["f"] = flag_of(countries[0]) if countries else ""
         elif typ == "nt":
             out["f"] = flag_of(cfg.get("national_team_country") or "")
         elif typ in ("club", "fclub"):
@@ -632,14 +662,14 @@ def build_data(raw, cfg):
 
     minimum = {"club": cfg["min_club"], "fclub": cfg["min_foreign_club"], "nt": cfg["min_club"],
                "nat": cfg["min_country"], "abroad": cfg["min_abroad"],
-               "pos": cfg["min_position"], "award": cfg["min_award"]}
+               "pos": cfg["min_position"], "award": cfg["min_award"],
+               "bplace": cfg.get("min_birthplace", 8), "coach": cfg.get("min_coach", 8)}
     criteria = {}
     for cid, mset in members.items():
         typ, label = meta[cid]
         if len(mset) < minimum[typ]:
             continue
         criteria[cid] = {"t": typ, "l": label, **extras(cid), "m": sorted(mset)}
-    apply_config(criteria, cfg)
 
     players_out = []
     for pid in kept:
@@ -662,7 +692,44 @@ def build_data(raw, cfg):
 
     log(f"{len(players_out)} players, {len(criteria)} criteria "
         f"({sum(1 for c in criteria.values() if c['t'] == 'club')} league clubs)")
-    return {"updated": raw["fetched"], "players": players_out, "criteria": criteria}
+    data = {"updated": raw["fetched"], "players": players_out, "criteria": criteria}
+    merge_countries(data)
+    add_decades(data, cfg)
+    apply_config(criteria, cfg)
+    return data
+
+
+# Wikidata has two items for some countries; players are split between them
+SAME_COUNTRY = {"Q756617": "Q35",    # Kingdom of Denmark -> Denmark
+                "Q29999": "Q55"}     # Kingdom of the Netherlands -> Netherlands
+
+
+def merge_countries(data):
+    """Fold duplicate country rows ("from the Kingdom of Denmark") into the main one."""
+    crit = data["criteria"]
+    for typ in ("nat", "abroad"):
+        for dup, main in SAME_COUNTRY.items():
+            a, b = f"{typ}:{dup}", f"{typ}:{main}"
+            if a not in crit:
+                continue
+            if b in crit:
+                crit[b]["m"] = sorted(set(crit[b]["m"]) | set(crit[a]["m"]))
+            else:
+                crit[b] = crit[a]
+            del crit[a]
+
+
+def add_decades(data, cfg):
+    """'Born in the 1990s'-style rows, worked out from the birth years already in data.json."""
+    names = TEXT[cfg["lang"]]["decade"]
+    groups = defaultdict(list)
+    for i, p in enumerate(data["players"]):
+        year = p[5] if len(p) > 5 else 0
+        if year:
+            groups[year // 10 * 10].append(i)
+    for dec, members in groups.items():
+        if dec in names and len(members) >= cfg.get("min_decade", 10):
+            data["criteria"][f"decade:{dec}"] = {"t": "decade", "l": names[dec], "m": members}
 
 
 def allowed(cid, cfg):
@@ -689,7 +756,12 @@ def apply_config(criteria, cfg):
 
 # ---------------------------------------------------------------- grids
 
-WEIGHT = {"club": 3.0, "fclub": 0.6, "nt": 2.0, "nat": 0.8, "abroad": 0.9, "pos": 0.6, "award": 0.6}
+WEIGHT = {"club": 3.0, "fclub": 0.6, "nt": 2.0, "nat": 0.8, "abroad": 0.9, "pos": 0.6, "award": 0.6,
+          "decade": 0.6, "bplace": 0.6, "coach": 0.6}
+# How often each kind of row is picked (a kind is picked first, then one row of that kind),
+# so kinds with hundreds of entries (foreign clubs, birthplaces) don't crowd out the rest.
+ROW_TYPE_SHARE = {"nt": 2.0, "nat": 1.0, "abroad": 3.0, "pos": 1.5, "award": 0.5,
+                  "fclub": 1.5, "decade": 1.0, "bplace": 1.0, "coach": 0.7}
 
 
 def grid_ok(rows, cols, sets, min_cell, known=None, min_known=0):
@@ -719,7 +791,7 @@ def top_club_ids(crit, players, cfg):
 
 
 # Columns are always three league clubs; rows are always three things that are not clubs.
-ROW_TYPES = ("nt", "nat", "abroad", "pos", "award")
+ROW_TYPES = ("nt", "nat", "abroad", "pos", "award", "fclub", "decade", "bplace", "coach")
 
 
 def layout_ok(rows, cols, crit):
@@ -727,7 +799,12 @@ def layout_ok(rows, cols, crit):
         return False
     types = [crit[r]["t"] for r in rows]
     return (all(t in ROW_TYPES for t in types) and types.count("pos") <= 1
-            and types.count("award") <= 1 and types.count("nat") <= 2 and types.count("abroad") <= 2)
+            and types.count("award") <= 1 and types.count("nat") <= 2 and types.count("abroad") <= 2
+            and types.count("fclub") <= 1 and types.count("decade") <= 1
+            and types.count("bplace") <= 1 and types.count("coach") <= 1
+            # not "from Portugal" and "played in Portugal" in the same grid
+            and len({r.split(":", 1)[1] for r in rows if r.startswith(("nat:", "abroad:"))})
+                == sum(1 for r in rows if r.startswith(("nat:", "abroad:"))))
 
 
 def fame_weights(crit, players):
@@ -780,7 +857,25 @@ def make_grid(date, crit, sets, cfg, recent, weighting, top=(), known=None):
     else:        # any other league club, popular clubs far more often
         other_pool = [(c, w * (8 if c in top else 1)) for c, w in zip(ids, weights)
                       if crit[c]["t"] == "club" and c not in must]
-    row_ids = [(c, w) for c, w in zip(ids, weights) if crit[c]["t"] in ROW_TYPES]
+    # only rows with enough well-known modern players to be able to fill a square
+    min_row = cfg.get("min_known_row", 6)
+    row_ids = [(c, w) for c, w in zip(ids, weights) if crit[c]["t"] in ROW_TYPES
+               and (known is None or len(known[c]) >= min_row)]
+    share = dict(ROW_TYPE_SHARE, **(cfg.get("row_type_share") or {}))
+    by_type = defaultdict(list)
+    for c, w in row_ids:
+        by_type[crit[c]["t"]].append((c, w))
+    kinds = [t for t in by_type if share.get(t, 0) > 0]
+
+    def pick_rows():
+        out = []
+        while len(out) < 3:
+            t = rng.choices(kinds, [share[k] for k in kinds])[0]
+            pool = by_type[t]
+            c = rng.choices([x for x, _ in pool], [w for _, w in pool])[0]
+            if c not in out:
+                out.append(c)
+        return out
 
     def pick(pool, n):
         out = []
@@ -800,7 +895,7 @@ def make_grid(date, crit, sets, cfg, recent, weighting, top=(), known=None):
         for _ in range(30000):
             cols = rng.sample(must, need) + pick(other_pool, 3 - need)
             rng.shuffle(cols)          # the fixed clubs move between column positions
-            rows = pick(row_ids, 3)
+            rows = pick_rows()
             if not layout_ok(rows, cols, crit):
                 continue
             if frozenset(rows + cols) in recent:
@@ -1334,6 +1429,8 @@ def regrid(name, cfg, args):
         data = json.load(f)
     with open(os.path.join(out_dir, "grids.json"), encoding="utf-8") as f:
         existing = json.load(f)
+    merge_countries(data)
+    add_decades(data, cfg)
     apply_config(data["criteria"], cfg)
     today = dt.date.fromisoformat(args.today) if args.today else cairo_today()
     grids = build_grids(data, cfg, existing, today, keep_future=False)

@@ -97,6 +97,9 @@
       "club:Q50602"
     ],
     "must_cols_count": 2,
-    "other_cols": []
+    "other_cols": [],
+    "row_type_share": {
+      "nt": 1.0
+    }
   }
 }

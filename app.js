@@ -131,6 +131,9 @@
   const UDIR = UL !== GAME.lang ? `lang="${UL}" dir="${UL === "ar" ? "rtl" : "ltr"}"` : "";
 
   const ICONS = {
+    cake: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21h16M5 21v-7a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v7M5 16c1.5 1.2 3 1.2 4.5 0s3-1.2 4.5 0 3 1.2 4.5 0M12 12V8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 3.5c1 1.2 1.2 2.3 0 3.2-1.2-.9-1-2 0-3.2Z" fill="currentColor"/></svg>',
+    pin: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-6.5-6-6.5-11a6.5 6.5 0 0 1 13 0c0 5-6.5 11-6.5 11Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="12" cy="10" r="2.4" fill="currentColor"/></svg>',
+    whistle: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5a5.5 5.5 0 1 0 11 0V9H21V6H8.5A5.5 5.5 0 0 0 3 11.5Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="8.5" cy="11.5" r="1.8" fill="currentColor"/><path d="M14 6V4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
     whatsapp: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2a8.2 8.2 0 0 1-4.2-1.1l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.7.8-.8 1-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.2-.4.7-1.4a.5.5 0 0 0 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.7 11.8 11.8 0 0 0 4.5 4c1.7.7 2.3.8 3.2.6a2.7 2.7 0 0 0 1.8-1.2 2.2 2.2 0 0 0 .1-1.3c0-.1-.2-.2-.5-.3Z"/></svg>',
     help: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M9.3 9.3a2.8 2.8 0 1 1 3.9 2.6c-.8.4-1.2.9-1.2 1.8v.6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="17.2" r="1.2" fill="currentColor"/></svg>',
     stats: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V12M12 20V5M19 20v-9" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>',
@@ -307,6 +310,12 @@
         return `<span class="badge icon">${pitchIcon(c.id.split(":")[1])}</span>`;
       case "award":
         return `<span class="badge icon">${ICONS.trophy}</span>`;
+      case "decade":
+        return `<span class="badge icon">${ICONS.cake}</span>`;
+      case "bplace":
+        return c.f ? `<span class="badge flagbox">${flagImg(c.f)}</span>` : `<span class="badge icon">${ICONS.pin}</span>`;
+      case "coach":
+        return `<span class="badge icon">${ICONS.whistle}</span>`;
       default:
         return "";
     }
