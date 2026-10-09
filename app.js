@@ -143,10 +143,23 @@
     globe: '<svg viewBox="0 0 40 30" aria-hidden="true"><circle cx="20" cy="15" r="11" fill="none" stroke="currentColor" stroke-width="2"/><path d="M9 15h22M20 4c4 4 4 18 0 22M20 4c-4 4-4 18 0 22" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>',
   };
   // Tiny pitch with the player's zone shaded: goalkeeper, defence, midfield, attack.
+  // zones measured from the team's own goal; on Arabic pages the own goal is on the right
+  // (where reading starts), so the team attacks towards the left
   const ZONES = { gk: [2, 7], df: [7, 17], mf: [17, 29], fw: [29, 38] };
   function pitchIcon(pos) {
-    const [a, b] = ZONES[pos] || [0, 0];
-    return `<svg viewBox="0 0 40 30" aria-hidden="true"><rect x="2" y="3" width="36" height="24" rx="2" fill="none" stroke="currentColor" stroke-width="1.6" opacity=".7"/><rect x="${a}" y="3" width="${b - a}" height="24" fill="currentColor" opacity=".9"/><path d="M20 3v24" stroke="currentColor" stroke-width="1.2" opacity=".6"/><circle cx="20" cy="15" r="4" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".6"/></svg>`;
+    let [x0, x1] = ZONES[pos] || [0, 0];
+    if (GAME.lang === "ar") [x0, x1] = [40 - x1, 40 - x0];
+    const own = GAME.lang === "ar" ? 38 : 2;            // own goal line
+    const dir = GAME.lang === "ar" ? -1 : 1;            // attacking direction
+    const box = (x, w) => `<rect x="${Math.min(x, x + w)}" y="9" width="${Math.abs(w)}" height="12" fill="none" stroke="currentColor" stroke-width="1.1" opacity=".6"/>`;
+    return `<svg viewBox="0 0 40 30" aria-hidden="true">
+      <rect x="${x0}" y="3" width="${x1 - x0}" height="24" fill="currentColor" opacity=".9"/>
+      <rect x="2" y="3" width="36" height="24" rx="2" fill="none" stroke="currentColor" stroke-width="1.6" opacity=".75"/>
+      <path d="M20 3v24" stroke="currentColor" stroke-width="1.1" opacity=".6"/>
+      <circle cx="20" cy="15" r="3.6" fill="none" stroke="currentColor" stroke-width="1.1" opacity=".6"/>
+      ${box(own, 5 * dir)}${box(40 - own, -5 * dir)}
+      <rect x="${own - (dir > 0 ? 2 : 0)}" y="12" width="2" height="6" fill="currentColor"/>
+    </svg>`;
   }
 
   // ---------------------------------------------------------------- helpers
