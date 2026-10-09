@@ -95,15 +95,11 @@ COMMON_DEFAULTS = {
     "badge_minutes": 20,         # max time per run for TheSportsDB crest lookups
     "photo_minutes": 25,         # max time per run for extra photo lookups
     "min_known_per_cell": 2,     # each square needs at least this many well-known answers
-    # Difficulty by day of the week (Cairo), like the NYT crossword over a Saturday-to-Friday week:
-    # easy Sat-Sun, medium Mon-Wed, hard Thu-Fri.
-    "difficulty_by_weekday": {"sat": "easy", "sun": "easy", "mon": "normal", "tue": "normal",
-                              "wed": "normal", "thu": "hard", "fri": "hard"},
-    "difficulty": {
-        "easy":   {"min_known": 4, "min_top": 3},                  # 4+ well-known answers per square, 3 top clubs
-        "normal": {"min_known": 2, "min_top": 2},
-        "hard":   {"min_known": 1, "min_top": 1, "tough_cells": 3},  # 3+ squares with at most 2 well-known answers
-    },
+    "known_born_from": 1975,     # "well-known" also means a modern player: born 1975 or later,
+                                 # i.e. played from 2000 on (Wikidata has no reliable career years)
+    "must_cols": [],             # clubs that must be columns (see must_cols_count)
+    "must_cols_count": 0,        # exactly this many columns come from must_cols
+    "other_cols": [],            # the remaining columns come from here (empty = any other league club)
 }
 
 LEAGUES = {
@@ -762,33 +758,28 @@ def fame_weights(crit, players):
     return ids, out
 
 
-WEEKDAYS = ("mon", "tue", "wed", "thu", "fri", "sat", "sun")
+def cols_ok(cols, cfg):
+    """Column rules: exactly must_cols_count columns from must_cols, the rest from other_cols."""
+    must, need = cfg.get("must_cols") or [], cfg.get("must_cols_count") or 0
+    if sum(c in must for c in cols) != need:
+        return False
+    others = cfg.get("other_cols") or []
+    return not others or all(c in others for c in cols if c not in must)
 
 
-def tier_for(day, cfg):
-    return (cfg.get("difficulty_by_weekday") or {}).get(WEEKDAYS[day.weekday()], "normal")
-
-
-def tier_rules(tier, cfg, n_top):
-    t = dict((cfg.get("difficulty") or {}).get(tier) or {})
-    return (t.get("min_known", cfg.get("min_known_per_cell", 2)),
-            min(t.get("min_top", cfg.get("min_top_clubs", 2)), n_top),
-            t.get("tough_cells", 0))
-
-
-def tough_ok(rows, cols, known, tough_cells):
-    """Hard days: at least tough_cells squares with no more than 2 well-known answers."""
-    if not tough_cells or known is None:
-        return True
-    return sum(1 for r in rows for c in cols if len(known[r] & known[c]) <= 2) >= tough_cells
-
-
-def make_grid(date, crit, sets, cfg, recent, weighting, top=(), known=None, tier="normal"):
+def make_grid(date, crit, sets, cfg, recent, weighting, top=(), known=None):
     rng = random.Random(f"{cfg['salt']}:{date}")
     ids, weights = weighting
     top = set(top)
+    must = [c for c in (cfg.get("must_cols") or []) if c in crit]
+    need = min(cfg.get("must_cols_count") or 0, len(must))
+    others = [c for c in (cfg.get("other_cols") or []) if c in crit]
     # popular clubs are picked far more often than the rest
-    club_ids = [(c, w * (8 if c in top else 1)) for c, w in zip(ids, weights) if crit[c]["t"] == "club"]
+    if others:   # a hand-picked list: every club in it gets an equal chance
+        other_pool = [(c, 1.0) for c in others if c not in must]
+    else:        # any other league club, popular clubs far more often
+        other_pool = [(c, w * (8 if c in top else 1)) for c, w in zip(ids, weights)
+                      if crit[c]["t"] == "club" and c not in must]
     row_ids = [(c, w) for c, w in zip(ids, weights) if crit[c]["t"] in ROW_TYPES]
 
     def pick(pool, n):
@@ -800,27 +791,23 @@ def make_grid(date, crit, sets, cfg, recent, weighting, top=(), known=None, tier
                 out.append(c)
         return out
 
-    if len(club_ids) < 3 or len(row_ids) < 3:
+    if len(other_pool) < 3 - need or len(row_ids) < 3:
         return None
-    min_known, min_top, tough = tier_rules(tier, cfg, len(top))
-    # relax step by step only if a day can't be built with the full rules
-    for min_cell, need_known, need_top, need_tough in (
-            (cfg["min_cell"], min_known, min_top, tough),
-            (cfg["min_cell"], max(1, min_known - 1), min_top, max(0, tough - 1)),
-            (cfg["min_cell"], max(1, min_known - 2), max(1, min_top - 1), 0),
-            (max(2, cfg["min_cell"] - 1), 1, max(1, min_top - 1), 0),
-            (1, 0, 0, 0)):
+    min_known = cfg.get("min_known_per_cell", 2)
+    # the column rules never relax; well-known answers relax only if a day is impossible
+    for min_cell, need_known in ((cfg["min_cell"], min_known), (cfg["min_cell"], max(1, min_known - 1)),
+                                 (max(2, cfg["min_cell"] - 1), 1), (1, 0)):
         for _ in range(30000):
-            cols = pick(club_ids, 3)
-            if sum(c in top for c in cols) < need_top:
-                continue
+            cols = rng.sample(must, need) + pick(other_pool, 3 - need)
+            rng.shuffle(cols)          # the fixed clubs move between column positions
             rows = pick(row_ids, 3)
             if not layout_ok(rows, cols, crit):
                 continue
             if frozenset(rows + cols) in recent:
                 continue
-            if grid_ok(rows, cols, sets, min_cell, known, need_known) and tough_ok(rows, cols, known, need_tough):
-                return {"rows": rows, "cols": cols, "d": tier}
+            if grid_ok(rows, cols, sets, min_cell, known, need_known):
+                return {"rows": rows, "cols": cols}
+        log(f"  {date}: relaxing the well-known-answer rule")
     return None
 
 
@@ -831,22 +818,15 @@ def build_grids(data, cfg, existing, today, keep_future=True):
     weighting = fame_weights(crit, data.get("players"))
     players = data.get("players") or []
     top = top_club_ids(crit, players, cfg)
-    if data.get("fame") == "views" and data.get("known_count"):
-        # players are sorted most-viewed first: the top known_count are the well-known ones
-        kc = data["known_count"]
-        known = {c: {i for i in v["m"] if i < kc} for c, v in crit.items()}
-    else:
-        thr = cfg.get("known_links", 10)
-        known = {c: {i for i in v["m"] if players and players[i][3] >= thr} for c, v in crit.items()}
-    def follows_rules(g, tier):
-        """A planned grid is kept only if it still matches its day's difficulty."""
-        if g.get("d") != tier:
-            return False
-        min_known, min_top, tough = tier_rules(tier, cfg, len(top))
-        return (layout_ok(g["rows"], g["cols"], crit)
-                and sum(c in top for c in g["cols"]) >= min_top
-                and grid_ok(g["rows"], g["cols"], sets, cfg["min_cell"], known, min_known)
-                and tough_ok(g["rows"], g["cols"], known, tough))
+    thr, born = cfg.get("known_links", 10), cfg.get("known_born_from") or 0
+    # well-known AND modern (born known_born_from or later, so played from 2000 on)
+    known = {c: {i for i in v["m"] if players and players[i][3] >= thr and (players[i][5] or 0) >= born}
+             for c, v in crit.items()}
+    min_known = cfg.get("min_known_per_cell", 2)
+
+    def follows_rules(g):
+        return (layout_ok(g["rows"], g["cols"], crit) and cols_ok(g["cols"], cfg)
+                and grid_ok(g["rows"], g["cols"], sets, cfg["min_cell"], known, min_known))
     start = dt.date.fromisoformat(cfg["start_date"])
     end = today + dt.timedelta(days=cfg["days_ahead"])
     out = {}
@@ -857,22 +837,19 @@ def build_grids(data, cfg, existing, today, keep_future=True):
         old = existing.get(ds)
         if old:  # renamed criterion id
             old = dict(old, **{k: [("nt:home" if c == "nt:egypt" else c) for c in old[k]] for k in ("rows", "cols")})
-        tier = tier_for(day, cfg)
         n = (day - start).days + 1
         keep = day <= today or keep_future
         playable = (all(c in crit for c in old["rows"] + old["cols"])
                     and grid_ok(old["rows"], old["cols"], sets, cfg["min_cell"])) if old else False
-        # today's grid is never redesigned (people may be mid-game); later days must follow the layout
-        still_valid = playable and (day <= today or follows_rules(old, tier))
+        # today's grid is never redesigned (people may be mid-game); later days must follow the rules
+        still_valid = playable and (day <= today or follows_rules(old))
         if old and (day < today or (keep and still_valid)):
             g = {"rows": old["rows"], "cols": old["cols"]}
-            if old.get("d"):
-                g["d"] = old["d"]
         elif day < today:
             day += dt.timedelta(days=1)
             continue  # never invent grids for the past
         else:
-            g = make_grid(ds, crit, sets, cfg, set(recent[-60:]), weighting, top, known, tier)
+            g = make_grid(ds, crit, sets, cfg, set(recent[-60:]), weighting, top, known)
             if g is None:
                 log(f"could not build a grid for {ds}")
                 day += dt.timedelta(days=1)

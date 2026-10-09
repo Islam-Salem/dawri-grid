@@ -23,8 +23,7 @@
     ar: {
       help: "طريقة اللعب", stats: "الإحصائيات", archive: "الشبكات السابقة", close: "إغلاق",
       loading: "جارٍ تحميل شبكة اليوم…",
-      edition: (n, d) => `<span class="ed-n">الشبكة رقم ${n} · </span>${d}`,
-      levels: { easy: "سهلة", normal: "متوسطة", hard: "صعبة" },
+      edition: (n, d) => `الشبكة رقم ${n} · ${d}`,
       whatsapp: "واتساب",
       footLinks: '<a href="about.html">عن اللعبة</a> · <a href="privacy.html">الخصوصية</a> · <a href="credits.html">حقوق الصور</a>',
       guessesLeft: "محاولات متبقية",
@@ -65,7 +64,6 @@
         "معك ٩ محاولات فقط، والإجابة الخاطئة تُحتسب محاولة.",
         "لا يمكن استخدام نفس اللاعب في أكثر من خانة.",
         "شبكة جديدة كل يوم عند منتصف الليل بتوقيت القاهرة.",
-        "الصعوبة تزيد خلال الأسبوع: سهلة السبت والأحد، متوسطة من الاثنين للأربعاء، وصعبة الخميس والجمعة.",
       ],
       helpNote: "البيانات من ويكي بيانات وقد تكون ناقصة لبعض اللاعبين.",
       and: " و ",
@@ -73,8 +71,7 @@
     en: {
       help: "How to play", stats: "Statistics", archive: "Past grids", close: "Close",
       loading: "Loading today's grid…",
-      edition: (n, d) => `<span class="ed-n">Grid ${n} · </span>${d}`,
-      levels: { easy: "Easy", normal: "Medium", hard: "Hard" },
+      edition: (n, d) => `Grid ${n} · ${d}`,
       whatsapp: "WhatsApp",
       footLinks: '<a href="about.html">About</a> · <a href="privacy.html">Privacy</a> · <a href="credits.html">Photo credits</a>',
       guessesLeft: "guesses left",
@@ -115,7 +112,6 @@
         "You have 9 guesses in total, and a wrong answer uses one up.",
         "Each player can only be used once.",
         "A new grid every day at midnight Cairo time.",
-        "Difficulty rises through the week: easy on Saturday and Sunday, medium Monday to Wednesday, hard on Thursday and Friday.",
       ],
       helpNote: "Data comes from Wikidata and may be incomplete for some players.",
       and: " & ",
@@ -661,8 +657,7 @@
       for (let c = 0; c < 3; c++) rows += state.cells[r * 3 + c] !== undefined ? "🟩" : "⬜";
       rows += "\n";
     }
-    const level = grid.d && U.levels[grid.d] ? ` · ${U.levels[grid.d]}` : "";
-    return `${GAME.title} #${grid.n}${level}\n${U.shareLine(filledCount(), TOTAL_GUESSES - state.guesses)}\n${rows}‎${location.origin + location.pathname}‎`;
+    return `${GAME.title} #${grid.n}\n${U.shareLine(filledCount(), TOTAL_GUESSES - state.guesses)}\n${rows}‎${location.origin + location.pathname}‎`;
   }
 
   function showStats() {
@@ -857,9 +852,7 @@
     if (![...grid.rows, ...grid.cols].every((id) => crit[id])) return fail(T.gridGone);
 
     load();
-    // on phones the grid number is hidden so date and difficulty fit on one line
-    $("#edition").innerHTML = U.edition(grid.n, esc(prettyDate(date)))
-      + (grid.d && U.levels[grid.d] ? ` · <b class="lvl lvl-${grid.d}">${U.levels[grid.d]}</b>` : "");
+    $("#edition").innerHTML = U.edition(grid.n, esc(prettyDate(date)));
     $("#updated").textContent = DATA.updated ? T.updated(DATA.updated) : "";
     $("#status").hidden = true;
     $("#album").hidden = false;

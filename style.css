@@ -817,10 +817,4 @@ html[dir="rtl"] .title { direction: rtl; }
   .doc h1 { font-size: 1.35rem; }
 }
 
-/* difficulty word in the date line */
-.lvl { font-weight: 700; }
-.lvl-easy { color: #9BE3A8; }
-.lvl-normal { color: var(--accent); }
-.lvl-hard { color: #FF9C8A; }
-@media (max-width: 600px) { .ed-n { display: none; } }
 .doc-top .brand { white-space: nowrap; }

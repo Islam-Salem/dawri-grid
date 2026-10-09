@@ -57,9 +57,13 @@ pool to the modern era and players with Wikipedia articles.
 - `allow_awards`: if set, only these award criteria are used (the Premier League keeps the two halls of fame).
 - `min_cell`, `min_club`, …: thresholds. Raise `min_cell` for easier grids.
 - `salt`: change it to reshuffle all *future* grids.
-- `top_clubs`: the popular clubs; every grid has at least `min_top_clubs` (default 2) of them as columns.
-- `known_links` / `min_known_per_cell`: every square needs at least `min_known_per_cell` (default 2) answers
-  who have `known_links` or more Wikipedia articles (Egypt 10, Premier League 30).
+- `top_clubs`: the popular clubs, picked more often for the free column.
+- `must_cols` / `must_cols_count` / `other_cols`: column rules. Egypt: Al Ahly and Zamalek every day
+  (in changing positions) plus one club from `other_cols`. Premier League: two of Arsenal, Liverpool,
+  Manchester United and Manchester City, plus any other club.
+- `known_links` / `known_born_from` / `min_known_per_cell`: every square needs at least `min_known_per_cell`
+  (2) answers who are well known (`known_links` Wikipedia articles or more) and modern (born
+  `known_born_from` = 1975 or later, i.e. played from 2000 on).
 
 After editing, run the *Update data* workflow again. Past days' grids are never changed.
 To apply config changes without downloading anything, run `python scraper/build_data.py --regrid`
