@@ -169,6 +169,9 @@ COMMON_DEFAULTS = {
     "min_decade": 10,        # birth-decade rows
     "min_known_row": 6,      # a row is only used if it has this many well-known modern players
     "row_types_off": ["bplace", "coach"],   # row kinds switched off (birthplace and "became a coach" proved unreliable)
+    # row kinds no longer used in new grids, but kept in the data so older grids still work
+    # (the birth year shows in the search results, so a birth-decade row gives the answer away)
+    "row_types_retired": ["decade"],
     "days_ahead": 90,
     "photo_sources": ["commons_category", "thesportsdb"],  # extra photo sources, in order
     "badge_sources": ["thesportsdb", "wikidata"],  # club crest sources, in order
@@ -1029,7 +1032,8 @@ def make_grid(date, crit, sets, cfg, recent, weighting, top=(), known=None):
     by_type = defaultdict(list)
     for c, w in row_ids:
         by_type[crit[c]["t"]].append((c, w))
-    kinds = [t for t in by_type if share.get(t, 0) > 0]
+    retired = set(cfg.get("row_types_retired") or [])
+    kinds = [t for t in by_type if share.get(t, 0) > 0 and t not in retired]
 
     def pick_rows():
         out = []
@@ -1084,7 +1088,9 @@ def build_grids(data, cfg, existing, today, keep_future=True):
     min_known = cfg.get("min_known_per_cell", 2)
 
     def follows_rules(g):
+        retired = set(cfg.get("row_types_retired") or [])
         return (layout_ok(g["rows"], g["cols"], crit) and cols_ok(g["cols"], cfg)
+                and not any(crit[r]["t"] in retired for r in g["rows"])
                 and grid_ok(g["rows"], g["cols"], sets, cfg["min_cell"], known, min_known))
     start = dt.date.fromisoformat(cfg["start_date"])
     end = today + dt.timedelta(days=cfg["days_ahead"])
