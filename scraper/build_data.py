@@ -58,7 +58,7 @@ TEXT = {
         "pos": {"gk": "حارس مرمى", "df": "مدافع", "mf": "لاعب وسط", "fw": "مهاجم"},
         "abroad": "لعب في {}",
         "nat": "من {}",
-        "bplace": "مواليد {}",
+        "bplace": "من {}",          # birthplace (city): "من الإسكندرية"
         "coach": "عمل مدربًا",
         "decade": {1960: "مواليد الستينات", 1970: "مواليد السبعينات", 1980: "مواليد الثمانينات",
                    1990: "مواليد التسعينات", 2000: "مواليد الألفينات"},
@@ -74,6 +74,86 @@ TEXT = {
     },
 }
 
+# Arabic: a foreign club is named with the country adjective, as Arab media do:
+# "الاتحاد السعودي", "ريال مدريد الإسباني" (instead of "الاتحاد (السعودية)")
+COUNTRY_ADJ_AR = {
+    "السعودية": "السعودي", "تونس": "التونسي", "المغرب": "المغربي", "ليبيا": "الليبي", "الجزائر": "الجزائري",
+    "السودان": "السوداني", "قطر": "القطري", "الإمارات العربية المتحدة": "الإماراتي", "الإمارات": "الإماراتي",
+    "الكويت": "الكويتي", "سلطنة عمان": "العماني", "عمان": "العماني", "البحرين": "البحريني", "الأردن": "الأردني",
+    "العراق": "العراقي", "سوريا": "السوري", "لبنان": "اللبناني", "فلسطين": "الفلسطيني", "اليمن": "اليمني",
+    "غانا": "الغاني", "نيجيريا": "النيجيري", "ساحل العاج": "الإيفواري", "الكاميرون": "الكاميروني",
+    "السنغال": "السنغالي", "مالي": "المالي", "زامبيا": "الزامبي", "أنغولا": "الأنغولي",
+    "جنوب أفريقيا": "الجنوب أفريقي", "جنوب إفريقيا": "الجنوب أفريقي", "إسبانيا": "الإسباني",
+    "إيطاليا": "الإيطالي", "فرنسا": "الفرنسي", "ألمانيا": "الألماني", "البرتغال": "البرتغالي",
+    "هولندا": "الهولندي", "مملكة هولندا": "الهولندي", "بلجيكا": "البلجيكي", "تركيا": "التركي",
+    "اليونان": "اليوناني", "سويسرا": "السويسري", "النمسا": "النمساوي", "اسكتلندا": "الاسكتلندي",
+    "روسيا": "الروسي", "أوكرانيا": "الأوكراني", "الولايات المتحدة": "الأمريكي", "البرازيل": "البرازيلي",
+    "الأرجنتين": "الأرجنتيني", "الصين": "الصيني", "جمهورية الصين الشعبية": "الصيني", "اليابان": "الياباني",
+    "الدنمارك": "الدنماركي", "مملكة الدنمارك": "الدنماركي", "السويد": "السويدي", "النرويج": "النرويجي",
+    "فنلندا": "الفنلندي", "آيسلندا": "الآيسلندي", "أيرلندا": "الأيرلندي", "جمهورية أيرلندا": "الأيرلندي",
+    "كرواتيا": "الكرواتي", "صربيا": "الصربي", "جمهورية التشيك": "التشيكي", "التشيك": "التشيكي",
+    "بولندا": "البولندي", "رومانيا": "الروماني", "بلغاريا": "البلغاري", "المجر": "المجري",
+    "قبرص": "القبرصي", "أستراليا": "الأسترالي", "نيوزيلندا": "النيوزيلندي", "كندا": "الكندي",
+    "المكسيك": "المكسيكي", "إيران": "الإيراني", "كوريا الجنوبية": "الكوري", "إسرائيل": "الإسرائيلي",
+    "الهند": "الهندي", "تايلاند": "التايلاندي", "ماليزيا": "الماليزي", "إندونيسيا": "الإندونيسي",
+}
+
+
+def fclub_label(label, where, lang):
+    if not where:
+        return label
+    if lang == "ar" and where in COUNTRY_ADJ_AR:
+        return f"{label} {COUNTRY_ADJ_AR[where]}"
+    return f"{label} ({where})"
+
+
+NOT_CITIES_AR = set(COUNTRY_ADJ_AR) | {"مصر", "إنجلترا", "ويلز", "أيرلندا الشمالية", "المملكة المتحدة"}
+
+
+def clean_birthplaces(data, cfg):
+    """No country-level birthplaces ('مواليد مصر'); 'مواليد محافظة المنوفية' -> 'مواليد المنوفية'."""
+    prefixes = [TEXT[cfg["lang"]]["bplace"].replace("{}", "").strip(), "مواليد", "Born in"]
+    club_names = [c["l"] for c in data["criteria"].values() if c["t"] in ("club", "fclub")]
+    for cid in list(data["criteria"]):
+        c = data["criteria"][cid]
+        if c["t"] != "bplace":
+            continue
+        place = c["l"].strip()
+        for pre in prefixes:
+            if place.startswith(pre + " مدينة "):
+                place = place[len(pre) + 7:].strip()
+                break
+            if place.startswith(pre + " "):
+                place = place[len(pre) + 1:].strip()
+                break
+        if place in NOT_CITIES_AR:
+            del data["criteria"][cid]
+            continue
+        place = re.sub(r"^محافظة\s+", "", place)
+        # "من ليفربول" could be read as the club: say "من مدينة ليفربول" when a club shares the name
+        if cfg["lang"] == "ar" and any(place in club for club in club_names):
+            place = "مدينة " + place
+        c["l"] = TEXT[cfg["lang"]]["bplace"].format(place)
+
+
+def relabel_fclubs(data, cfg):
+    """'الاتحاد (السعودية)' -> 'الاتحاد السعودي', or just 'ريال مدريد' when the league's config has
+    "fclub_country": false. The country is kept only where two foreign clubs share a name."""
+    parts = {}
+    for cid, c in data["criteria"].items():
+        if c["t"] == "fclub":
+            m = re.match(r"^(.*?)\s*\(([^()]*)\)\s*$", c["l"])
+            if m:
+                parts[cid] = (m.group(1), m.group(2))
+    count = defaultdict(int)
+    for name, _ in parts.values():
+        count[name] += 1
+    show_country = cfg.get("fclub_country", True)
+    for cid, (name, where) in parts.items():
+        c = data["criteria"][cid]
+        c["l"] = fclub_label(name, where, cfg["lang"]) if show_country or count[name] > 1 else name
+
+
 COMMON_DEFAULTS = {
     "exclude": [],           # criterion ids to never use, e.g. "award:Q123"
     "labels": {},            # criterion id -> label override
@@ -88,6 +168,7 @@ COMMON_DEFAULTS = {
     "min_coach": 8,          # "became a coach"
     "min_decade": 10,        # birth-decade rows
     "min_known_row": 6,      # a row is only used if it has this many well-known modern players
+    "row_types_off": ["bplace", "coach"],   # row kinds switched off (birthplace and "became a coach" proved unreliable)
     "days_ahead": 90,
     "photo_sources": ["commons_category", "thesportsdb"],  # extra photo sources, in order
     "badge_sources": ["thesportsdb", "wikidata"],  # club crest sources, in order
@@ -278,9 +359,10 @@ def fetch_raw(cfg):
     log("Player names...")
     for batch in chunks(sorted(players), 150):
         rows = try_query("labels", f"""
-            SELECT ?p ?en ?ar ?arz ?links ?sex ?img ?birth ?cat WHERE {{
+            SELECT ?p ?en ?mul ?ar ?arz ?links ?sex ?img ?birth ?cat WHERE {{
               VALUES ?p {{ {values(batch)} }}
               OPTIONAL {{ ?p rdfs:label ?en FILTER(lang(?en)="en") }}
+              OPTIONAL {{ ?p rdfs:label ?mul FILTER(lang(?mul)="mul") }}
               OPTIONAL {{ ?p rdfs:label ?ar FILTER(lang(?ar)="ar") }}
               OPTIONAL {{ ?p rdfs:label ?arz FILTER(lang(?arz)="arz") }}
               OPTIONAL {{ ?p wikibase:sitelinks ?links }}
@@ -291,7 +373,7 @@ def fetch_raw(cfg):
             }}""")
         for r in rows:
             d = P[qid(r["p"])]
-            d["en"] = d["en"] or val(r, "en")
+            d["en"] = d["en"] or val(r, "en") or val(r, "mul")   # many names now only have a "mul" label
             d["ar"] = d["ar"] or val(r, "ar") or val(r, "arz")
             d["ar_std"] = d.get("ar_std") or val(r, "ar")  # standard Arabic only (no Egyptian-Arabic fallback)
             d["links"] = int(val(r, "links") or 0)
@@ -326,6 +408,10 @@ def fetch_raw(cfg):
             wiki = "ar" if "//ar." in val(r, "site") else "en"
             P[qid(r["p"])].setdefault("wiki", {})[wiki] = val(r, "title")
 
+    # only what the game uses: birthplace (P19) is skipped while its rows are switched off
+    off = set(cfg.get("row_types_off") or [])
+    props = "wdt:P27 wdt:P1532 wdt:P413 wdt:P166 wdt:P106" + ("" if "bplace" in off else " wdt:P19")
+
     log("Player careers...")
     for batch in chunks(sorted(P), 150):
         rows = try_query("teams", f"""
@@ -343,7 +429,7 @@ def fetch_raw(cfg):
         rows = try_query("props", f"""
             SELECT ?p ?prop ?v WHERE {{
               VALUES ?p {{ {values(batch)} }}
-              VALUES ?prop {{ wdt:P27 wdt:P1532 wdt:P413 wdt:P166 wdt:P19 wdt:P106 }}
+              VALUES ?prop {{ {props} }}
               ?p ?prop ?v .
             }}""")
         key = {"P27": "cit", "P1532": "sport", "P413": "pos", "P166": "awards", "P19": "bplace", "P106": "occ"}
@@ -487,9 +573,10 @@ def local_badge(qid_):
 def fetch_items(raw, ids):
     for batch in chunks(sorted(ids), 200):
         rows = try_query("items", f"""
-            SELECT ?i ?en ?ar ?arz ?c ?t ?flag ?hex ?logo WHERE {{
+            SELECT ?i ?en ?mul ?ar ?arz ?c ?t ?flag ?hex ?logo WHERE {{
               VALUES ?i {{ {values(batch)} }}
               OPTIONAL {{ ?i rdfs:label ?en FILTER(lang(?en)="en") }}
+              OPTIONAL {{ ?i rdfs:label ?mul FILTER(lang(?mul)="mul") }}
               OPTIONAL {{ ?i rdfs:label ?ar FILTER(lang(?ar)="ar") }}
               OPTIONAL {{ ?i rdfs:label ?arz FILTER(lang(?arz)="arz") }}
               OPTIONAL {{ ?i wdt:P17 ?c }}
@@ -500,7 +587,7 @@ def fetch_items(raw, ids):
             }}""")
         for r in rows:
             i = raw["items"].setdefault(qid(r["i"]), {"en": None, "ar": None, "country": [], "types": []})
-            i["en"] = i["en"] or val(r, "en")
+            i["en"] = i["en"] or val(r, "en") or val(r, "mul")
             i["ar"] = i["ar"] or val(r, "ar") or val(r, "arz")
             if "c" in r and qid(r["c"]) not in i["country"]:
                 i["country"].append(qid(r["c"]))
@@ -587,6 +674,8 @@ def build_data(raw, cfg):
 
     members = defaultdict(set)
     meta = {}
+    country_ids = ({c for d in raw["players"].values() for c in d["cit"] + d["sport"]}
+                   | {c for it in items.values() for c in it.get("country", [])})
 
     for pid in kept:
         d = raw["players"][pid]
@@ -609,7 +698,7 @@ def build_data(raw, cfg):
                 countries = items.get(t, {}).get("country", [])
                 where = name_of(items.get(countries[0]), lang) if countries else None
                 label = club_name(items.get(t), lang) or t
-                meta[cid] = ("fclub", f"{label} ({where})" if where else label)
+                meta[cid] = ("fclub", f"{label} ({where})" if where else label)   # see relabel_fclubs
                 for c in countries:
                     if c not in home:
                         aid = f"abroad:{c}"
@@ -629,6 +718,8 @@ def build_data(raw, cfg):
             members[aid].add(i)
             meta[aid] = ("award", name_of(items.get(a), lang) or a)
         for c in d.get("bplace", [])[:1]:          # place of birth (city)
+            if c in country_ids:                   # "born in Egypt" says nothing: cities only
+                continue
             bid = f"bplace:{c}"
             name = name_of(items.get(c), lang)
             if name:
@@ -702,6 +793,8 @@ def build_data(raw, cfg):
     log(f"{len(players_out)} players, {len(criteria)} criteria "
         f"({sum(1 for c in criteria.values() if c['t'] == 'club')} league clubs)")
     data = {"updated": raw["fetched"], "players": players_out, "criteria": criteria}
+    relabel_fclubs(data, cfg)
+    clean_birthplaces(data, cfg)
     merge_countries(data)
     add_decades(data, cfg)
     add_members(data, cfg)
@@ -734,6 +827,9 @@ def add_members(data, cfg):
     "add_members": {"nt:home": ["Q448937"], "club:Q223566": ["Q123"]} adds those players;
     "remove_players": ["Q169963"] takes people who are not footballers out of every square."""
     index = {p[0]: i for i, p in enumerate(data["players"])}
+    for pid, name in (cfg.get("names_en") or {}).items():   # English names Wikidata lacks
+        if pid in index and not data["players"][index[pid]][2]:
+            data["players"][index[pid]][2] = name
     gone = {index[p] for p in cfg.get("remove_players") or [] if p in index}
     if gone:
         for c in data["criteria"].values():
@@ -770,6 +866,9 @@ def allowed(cid, cfg):
 
 def apply_config(criteria, cfg):
     """Remove switched-off criteria and apply label overrides, in place."""
+    off = set(cfg.get("row_types_off") or [])
+    for cid in [c for c, v in criteria.items() if v["t"] in off]:
+        del criteria[cid]
     labels = dict(cfg.get("labels", {}))
     if "nt:egypt" in labels:  # old config name
         labels.setdefault("nt:home", labels["nt:egypt"])
@@ -1129,6 +1228,7 @@ def fill_extra_photos(data, raw, cfg, out_dir, live):
 
 # ---------------------------------------------------------------- club crests
 
+BADGE_LOGIC_VERSION = 2   # bump when the name matching improves, so misses are looked up again
 SPORTSDB_TEAMS = "https://www.thesportsdb.com/api/v1/json/123/searchteams.php"
 # TheSportsDB country names for Wikidata countries that differ
 COUNTRY_ALIASES = {"United Kingdom": {"England", "Wales", "Scotland", "Northern Ireland"},
@@ -1136,15 +1236,26 @@ COUNTRY_ALIASES = {"United Kingdom": {"England", "Wales", "Scotland", "Northern 
                    "Kingdom of the Netherlands": {"Netherlands"}, "Republic of Ireland": {"Ireland"}}
 
 
+CLUB_WORDS = re.compile(r"\b(A\.?\s?F\.?\s?C\.?|F\.?\s?C\.?|C\.?\s?F\.?|S\.?\s?C\.?|Football Club|Sporting Club|"
+                        r"Club|Clube|Calcio|Fussball|Futebol|SK|IF|BK|FK|NK|AC|AS|SS|US|CD|CA|SV|VfB|VfL|TSV)\b\.?", re.I)
+
+
 def team_names(name):
-    """Name variants to search: 'Manchester United F.C.' -> 'Manchester United F.C.', 'Manchester United'."""
+    """Name variants to search: 'Al-Ittihad Club (Jeddah)' -> 'Al-Ittihad Club (Jeddah)',
+    'Al-Ittihad Club', 'Al-Ittihad', 'Al Ittihad'; 'Manchester United F.C.' -> 'Manchester United'."""
     out = [name]
+    def add(x):
+        x = re.sub(r"\s+", " ", x).strip(" -.,")
+        if x and len(x) > 2 and x not in out:
+            out.append(x)
     short = re.sub(r"\s*\(.*?\)\s*", " ", name).strip()
-    short = re.sub(r"\s+(A\.?\s?F\.?\s?C\.?|F\.?\s?C\.?|C\.?\s?F\.?|S\.?\s?C\.?)$", "", short).strip()
-    short = re.sub(r"^(A\.?F\.?C\.?|F\.?C\.?)\s+", "", short).strip()
-    if short and short not in out:
-        out.append(short)
-    return out
+    short = re.sub(r"(\s+(?:[A-Z]{1,2}\.\s?){1,3}[A-Z]?\.?)+$", "", short).strip()   # 'S.K.', 'F.C.'
+    short = re.sub(r"^(?:[A-Z]{1,2}\.\s?){1,3}\s*", "", short).strip()                 # 'S.L. Benfica'
+    add(short)
+    bare = CLUB_WORDS.sub(" ", short)
+    add(bare)
+    add(bare.replace("-", " "))
+    return out[:4]
 
 
 def sportsdb_badge(name_en, country_en):
@@ -1161,9 +1272,13 @@ def sportsdb_badge(name_en, country_en):
         if countries:
             teams = [t for t in teams if t.get("strCountry") in countries]
         want = simple_name(variant)
-        exact = [t for t in teams if simple_name(t.get("strTeam")) == want
-                 or want in [simple_name(a) for a in (t.get("strTeamAlternate") or "").split(",")]]
-        pick = exact[0] if len(exact) >= 1 else (teams[0] if len(teams) == 1 else None)
+        def names(t):
+            return [simple_name(t.get("strTeam"))] + [simple_name(a) for a in (t.get("strTeamAlternate") or "").split(",")]
+        exact = [t for t in teams if want in names(t)]
+        # 'Paris Saint Germain' vs 'Paris SG' style differences: all the words of one name in the other
+        close = [t for t in teams if countries and any(n and (set(n) <= set(want) or set(want) <= set(n)) for n in names(t))]
+        pick = (exact[0] if exact else close[0] if len(close) == 1
+                else teams[0] if len(teams) == 1 and countries else None)
         if pick:
             return pick["strBadge"] + "/small"
     return ""
@@ -1351,14 +1466,15 @@ def fill_badges(data, raw, cfg, out_dir, live):
         nonlocal looked_up, found
         q = cid.split(":", 1)[1]
         hit = cache.get(q)
-        fresh = hit and (hit.get("u") or dt.date.fromisoformat(hit["t"]) + retry > today)
+        fresh = hit and (hit.get("u") or (hit.get("v") == BADGE_LOGIC_VERSION
+                                           and dt.date.fromisoformat(hit["t"]) + retry > today))
         if not fresh and live and time.time() < budget:
             it = items.get(q, {})
             country = (items.get((it.get("country") or [""])[0]) or {}).get("en") or ""
             url = sportsdb_badge(it.get("en"), country)
             if url is None:
                 return ""
-            hit = {"u": url, "t": today.isoformat()}
+            hit = {"u": url, "t": today.isoformat(), "v": BADGE_LOGIC_VERSION}
             cache[q] = hit
             looked_up += 1
             found += bool(url)
@@ -1455,6 +1571,8 @@ def regrid(name, cfg, args):
         data = json.load(f)
     with open(os.path.join(out_dir, "grids.json"), encoding="utf-8") as f:
         existing = json.load(f)
+    relabel_fclubs(data, cfg)
+    clean_birthplaces(data, cfg)
     merge_countries(data)
     add_decades(data, cfg)
     add_members(data, cfg)

@@ -1181,5 +1181,18 @@
 "pos:fw",
 "fclub:Q309480"
 ]
+},
+"2027-01-08": {
+"cols": [
+"club:Q223566",
+"club:Q286504",
+"club:Q2084802"
+],
+"n": 92,
+"rows": [
+"abroad:Q41",
+"nt:home",
+"abroad:Q43"
+]
 }
 }

@@ -40,28 +40,28 @@
 },
 "2026-10-12": {
 "cols": [
-"club:Q9617",
-"club:Q19462",
-"club:Q1130849"
+"club:Q5794",
+"club:Q50602",
+"club:Q9617"
 ],
 "n": 4,
 "rows": [
 "decade:2000",
-"abroad:Q142",
-"pos:mf"
+"nt:home",
+"fclub:Q10333"
 ]
 },
 "2026-10-13": {
 "cols": [
+"club:Q9617",
 "club:Q50602",
-"club:Q19500",
-"club:Q18656"
+"club:Q19490"
 ],
 "n": 5,
 "rows": [
-"decade:1990",
-"pos:df",
-"nat:Q21"
+"abroad:Q414",
+"abroad:Q142",
+"nt:home"
 ]
 },
 "2026-10-14": {
@@ -72,35 +72,35 @@
 ],
 "n": 6,
 "rows": [
-"nat:Q21",
+"nt:home",
 "abroad:Q142",
 "fclub:Q19521"
 ]
 },
 "2026-10-15": {
 "cols": [
-"club:Q9617",
-"club:Q18729",
-"club:Q1130849"
+"club:Q50602",
+"club:Q19580",
+"club:Q18656"
 ],
 "n": 7,
 "rows": [
-"abroad:Q38",
-"abroad:Q142",
-"nat:Q55"
+"abroad:Q183",
+"decade:1990",
+"abroad:Q38"
 ]
 },
 "2026-10-16": {
 "cols": [
-"club:Q50602",
-"club:Q19470",
-"club:Q1130849"
+"club:Q9617",
+"club:Q18736",
+"club:Q18656"
 ],
 "n": 8,
 "rows": [
-"decade:1990",
-"abroad:Q29",
-"abroad:Q31"
+"nt:home",
+"decade:1980",
+"pos:fw"
 ]
 },
 "2026-10-17": {
@@ -118,15 +118,15 @@
 },
 "2026-10-18": {
 "cols": [
-"club:Q5794",
 "club:Q18656",
-"club:Q9617"
+"club:Q50602",
+"club:Q9616"
 ],
 "n": 10,
 "rows": [
-"pos:df",
-"decade:1980",
-"nat:Q142"
+"nt:home",
+"pos:fw",
+"abroad:Q183"
 ]
 },
 "2026-10-19": {
@@ -144,41 +144,41 @@
 },
 "2026-10-20": {
 "cols": [
+"club:Q1130849",
 "club:Q50602",
-"club:Q19458",
-"club:Q1130849"
+"club:Q18711"
 ],
 "n": 12,
 "rows": [
-"pos:df",
-"abroad:Q142",
-"decade:1980"
+"nt:home",
+"pos:gk",
+"abroad:Q29"
 ]
 },
 "2026-10-21": {
 "cols": [
-"club:Q9617",
-"club:Q1130849",
-"club:Q18716"
+"club:Q19446",
+"club:Q18656",
+"club:Q9617"
 ],
 "n": 13,
 "rows": [
 "pos:df",
-"decade:1970",
-"abroad:Q235"
+"nt:home",
+"abroad:Q408"
 ]
 },
 "2026-10-22": {
 "cols": [
-"club:Q9617",
 "club:Q18741",
-"club:Q1130849"
+"club:Q9617",
+"club:Q50602"
 ],
 "n": 14,
 "rows": [
-"pos:mf",
-"abroad:Q183",
-"abroad:Q31"
+"abroad:Q414",
+"nt:home",
+"pos:mf"
 ]
 },
 "2026-10-23": {
@@ -196,28 +196,28 @@
 },
 "2026-10-24": {
 "cols": [
-"club:Q9616",
-"club:Q18656",
+"club:Q18711",
+"club:Q1130849",
 "club:Q50602"
 ],
 "n": 16,
 "rows": [
-"pos:fw",
-"abroad:Q414",
-"abroad:Q148"
+"nat:Q21",
+"abroad:Q31",
+"decade:1970"
 ]
 },
 "2026-10-25": {
 "cols": [
-"club:Q18656",
-"club:Q50602",
-"club:Q5794"
+"club:Q1130849",
+"club:Q9617",
+"club:Q18708"
 ],
 "n": 17,
 "rows": [
-"abroad:Q29",
-"pos:mf",
-"decade:1970"
+"pos:gk",
+"decade:1970",
+"abroad:Q20"
 ]
 },
 "2026-10-26": {
@@ -268,60 +268,60 @@
 "n": 21,
 "rows": [
 "pos:mf",
-"nat:Q29",
+"nt:home",
 "abroad:Q38"
 ]
 },
 "2026-10-30": {
 "cols": [
-"club:Q5794",
-"club:Q18656",
-"club:Q50602"
+"club:Q1130849",
+"club:Q9617",
+"club:Q19467"
 ],
 "n": 22,
 "rows": [
-"abroad:Q851",
-"decade:1970",
-"pos:mf"
+"nt:home",
+"decade:1990",
+"pos:fw"
 ]
 },
 "2026-10-31": {
 "cols": [
-"club:Q5794",
 "club:Q18656",
-"club:Q9617"
+"club:Q18711",
+"club:Q50602"
 ],
 "n": 23,
 "rows": [
+"abroad:Q34",
 "decade:1970",
-"abroad:Q29",
 "pos:df"
 ]
 },
 "2026-11-01": {
 "cols": [
-"club:Q18656",
-"club:Q9616",
-"club:Q50602"
+"club:Q9617",
+"club:Q18741",
+"club:Q18656"
 ],
 "n": 24,
 "rows": [
-"abroad:Q29",
-"decade:1990",
-"pos:fw"
+"abroad:Q851",
+"nt:home",
+"pos:gk"
 ]
 },
 "2026-11-02": {
 "cols": [
-"club:Q18711",
+"club:Q18656",
 "club:Q1130849",
-"club:Q9617"
+"club:Q18747"
 ],
 "n": 25,
 "rows": [
-"pos:mf",
-"abroad:Q55",
-"abroad:Q31"
+"abroad:Q408",
+"abroad:Q851",
+"nat:Q29"
 ]
 },
 "2026-11-03": {
@@ -339,67 +339,67 @@
 },
 "2026-11-04": {
 "cols": [
-"club:Q19500",
-"club:Q50602",
-"club:Q1130849"
+"club:Q1130849",
+"club:Q5794",
+"club:Q9617"
 ],
 "n": 27,
 "rows": [
-"abroad:Q846",
-"fclub:Q128446",
-"abroad:Q183"
+"nt:home",
+"decade:1970",
+"fclub:Q132885"
 ]
 },
 "2026-11-05": {
 "cols": [
-"club:Q18747",
 "club:Q9617",
-"club:Q50602"
+"club:Q50602",
+"club:Q18711"
 ],
 "n": 28,
 "rows": [
-"decade:1990",
-"abroad:Q41",
-"pos:mf"
+"pos:mf",
+"nt:home",
+"abroad:Q55"
 ]
 },
 "2026-11-06": {
 "cols": [
-"club:Q18716",
-"club:Q18656",
-"club:Q50602"
+"club:Q9617",
+"club:Q50602",
+"club:Q19467"
 ],
 "n": 29,
 "rows": [
-"pos:mf",
-"decade:1990",
-"abroad:Q183"
+"decade:1980",
+"abroad:Q29",
+"nt:home"
 ]
 },
 "2026-11-07": {
 "cols": [
-"club:Q50602",
-"club:Q18750",
-"club:Q1130849"
+"club:Q18741",
+"club:Q9617",
+"club:Q50602"
 ],
 "n": 30,
 "rows": [
-"decade:1990",
-"abroad:Q45",
-"abroad:Q55"
+"decade:1980",
+"abroad:Q142",
+"abroad:Q41"
 ]
 },
 "2026-11-08": {
 "cols": [
-"club:Q19462",
-"club:Q50602",
-"club:Q18656"
+"club:Q18656",
+"club:Q9617",
+"club:Q18716"
 ],
 "n": 31,
 "rows": [
-"pos:mf",
-"abroad:Q142",
-"decade:2000"
+"nat:Q55",
+"abroad:Q159",
+"nat:Q38"
 ]
 },
 "2026-11-09": {
@@ -438,33 +438,33 @@
 "rows": [
 "abroad:Q43",
 "abroad:Q38",
-"nat:Q25"
+"nt:home"
 ]
 },
 "2026-11-12": {
 "cols": [
-"club:Q50602",
 "club:Q18656",
-"club:Q18716"
+"club:Q9617",
+"club:Q9616"
 ],
 "n": 35,
 "rows": [
-"fclub:Q6601875",
-"abroad:Q159",
-"abroad:Q29"
+"nt:home",
+"decade:1980",
+"abroad:Q38"
 ]
 },
 "2026-11-13": {
 "cols": [
 "club:Q18656",
 "club:Q9617",
-"club:Q9616"
+"club:Q18747"
 ],
 "n": 36,
 "rows": [
-"decade:1990",
-"abroad:Q55",
-"pos:fw"
+"nt:home",
+"pos:fw",
+"decade:1990"
 ]
 },
 "2026-11-14": {
@@ -475,100 +475,100 @@
 ],
 "n": 37,
 "rows": [
-"nat:Q155",
+"nt:home",
 "abroad:Q142",
 "fclub:Q81888"
 ]
 },
 "2026-11-15": {
 "cols": [
-"club:Q50602",
+"club:Q2714",
 "club:Q9617",
-"club:Q9616"
+"club:Q1130849"
 ],
 "n": 38,
 "rows": [
-"pos:mf",
 "decade:1990",
-"abroad:Q45"
+"pos:mf",
+"nt:home"
 ]
 },
 "2026-11-16": {
 "cols": [
-"club:Q18741",
 "club:Q50602",
-"club:Q1130849"
+"club:Q19446",
+"club:Q9617"
 ],
 "n": 39,
 "rows": [
 "decade:1980",
-"pos:df",
-"abroad:Q29"
+"nt:home",
+"pos:df"
 ]
 },
 "2026-11-17": {
 "cols": [
-"club:Q50602",
+"club:Q18711",
 "club:Q18656",
-"club:Q9616"
+"club:Q9617"
 ],
 "n": 40,
 "rows": [
-"award:Q106634956",
-"abroad:Q45",
-"abroad:Q408"
+"nt:home",
+"decade:1980",
+"pos:mf"
 ]
 },
 "2026-11-18": {
 "cols": [
-"club:Q19451",
-"club:Q50602",
+"club:Q9616",
+"club:Q9617",
 "club:Q1130849"
 ],
 "n": 41,
 "rows": [
-"decade:1970",
-"pos:mf",
-"abroad:Q142"
+"abroad:Q142",
+"nt:home",
+"abroad:Q20"
 ]
 },
 "2026-11-19": {
 "cols": [
-"club:Q18747",
-"club:Q18656",
-"club:Q1130849"
+"club:Q9616",
+"club:Q1130849",
+"club:Q9617"
 ],
 "n": 42,
 "rows": [
-"abroad:Q55",
-"nat:Q414",
-"abroad:Q142"
+"nat:Q155",
+"abroad:Q38",
+"decade:1990"
 ]
 },
 "2026-11-20": {
 "cols": [
-"club:Q18656",
-"club:Q1130849",
-"club:Q19451"
+"club:Q9617",
+"club:Q9616",
+"club:Q1130849"
 ],
 "n": 43,
 "rows": [
-"pos:fw",
-"decade:1990",
-"abroad:Q408"
+"nat:Q45",
+"nt:home",
+"fclub:Q2739"
 ]
 },
 "2026-11-21": {
 "cols": [
-"club:Q9617",
 "club:Q18741",
-"club:Q18656"
+"club:Q50602",
+"club:Q1130849"
 ],
 "n": 44,
 "rows": [
-"decade:2000",
-"nat:Q38",
-"pos:df"
+"nt:home",
+"pos:df",
+"abroad:Q43"
 ]
 },
 "2026-11-22": {
@@ -580,125 +580,125 @@
 "n": 45,
 "rows": [
 "abroad:Q142",
-"nat:Q21",
+"nt:home",
 "abroad:Q183"
 ]
 },
 "2026-11-23": {
 "cols": [
+"club:Q18656",
 "club:Q9617",
-"club:Q1130849",
-"club:Q9616"
+"club:Q18741"
 ],
 "n": 46,
 "rows": [
-"pos:df",
-"abroad:Q38",
-"abroad:Q846"
+"fclub:Q7156",
+"pos:mf",
+"abroad:Q142"
 ]
 },
 "2026-11-24": {
 "cols": [
-"club:Q1130849",
-"club:Q50602",
-"club:Q5794"
+"club:Q18656",
+"club:Q9617",
+"club:Q9616"
 ],
 "n": 47,
 "rows": [
-"abroad:Q183",
-"decade:1980",
-"nat:Q29"
+"nt:home",
+"abroad:Q43",
+"abroad:Q142"
 ]
 },
 "2026-11-25": {
 "cols": [
-"club:Q9617",
 "club:Q18656",
-"club:Q18741"
+"club:Q1130849",
+"club:Q5794"
 ],
 "n": 48,
 "rows": [
-"abroad:Q35",
-"decade:1980",
-"pos:fw"
+"abroad:Q142",
+"abroad:Q851",
+"nt:home"
 ]
 },
 "2026-11-26": {
 "cols": [
-"club:Q50602",
 "club:Q9617",
-"club:Q9616"
+"club:Q18656",
+"club:Q18747"
 ],
 "n": 49,
 "rows": [
-"abroad:Q55",
-"decade:1980",
-"pos:fw"
+"decade:1970",
+"pos:fw",
+"nat:Q142"
 ]
 },
 "2026-11-27": {
 "cols": [
-"club:Q1130849",
 "club:Q18656",
-"club:Q19500"
+"club:Q18736",
+"club:Q9617"
 ],
 "n": 50,
 "rows": [
-"abroad:Q155",
-"nat:Q21",
-"decade:1970"
+"pos:fw",
+"nt:home",
+"abroad:Q20"
 ]
 },
 "2026-11-28": {
 "cols": [
+"club:Q18656",
 "club:Q1130849",
-"club:Q18741",
-"club:Q50602"
+"club:Q18711"
 ],
 "n": 51,
 "rows": [
-"abroad:Q34",
-"pos:gk",
-"abroad:Q41"
+"abroad:Q30",
+"nat:Q155",
+"decade:1980"
 ]
 },
 "2026-11-29": {
 "cols": [
-"club:Q50602",
-"club:Q9617",
-"club:Q18741"
+"club:Q18656",
+"club:Q9616",
+"club:Q1130849"
 ],
 "n": 52,
 "rows": [
-"abroad:Q43",
-"abroad:Q183",
+"nt:home",
+"decade:1980",
 "pos:fw"
 ]
 },
 "2026-11-30": {
 "cols": [
-"club:Q18747",
-"club:Q50602",
-"club:Q1130849"
+"club:Q9616",
+"club:Q18656",
+"club:Q50602"
 ],
 "n": 53,
 "rows": [
-"pos:mf",
-"abroad:Q29",
-"decade:2000"
+"decade:1980",
+"abroad:Q45",
+"nt:home"
 ]
 },
 "2026-12-01": {
 "cols": [
-"club:Q5794",
 "club:Q50602",
-"club:Q9617"
+"club:Q18656",
+"club:Q9616"
 ],
 "n": 54,
 "rows": [
-"pos:mf",
-"abroad:Q43",
-"abroad:Q155"
+"pos:df",
+"abroad:Q142",
+"nt:home"
 ]
 },
 "2026-12-02": {
@@ -716,28 +716,28 @@
 },
 "2026-12-03": {
 "cols": [
-"club:Q18656",
-"club:Q5794",
-"club:Q9617"
+"club:Q9617",
+"club:Q50602",
+"club:Q9616"
 ],
 "n": 56,
 "rows": [
-"decade:1990",
-"abroad:Q235",
-"pos:fw"
+"abroad:Q29",
+"award:Q106634956",
+"fclub:Q1543"
 ]
 },
 "2026-12-04": {
 "cols": [
-"club:Q18716",
-"club:Q18656",
-"club:Q9617"
+"club:Q18741",
+"club:Q1130849",
+"club:Q18656"
 ],
 "n": 57,
 "rows": [
-"pos:df",
-"abroad:Q45",
-"decade:1980"
+"nt:home",
+"decade:1990",
+"pos:gk"
 ]
 },
 "2026-12-05": {
@@ -756,14 +756,14 @@
 "2026-12-06": {
 "cols": [
 "club:Q50602",
-"club:Q9616",
+"club:Q19568",
 "club:Q9617"
 ],
 "n": 59,
 "rows": [
-"abroad:Q142",
+"nt:home",
 "pos:mf",
-"decade:1990"
+"nat:Q21"
 ]
 },
 "2026-12-07": {
@@ -787,61 +787,61 @@
 ],
 "n": 61,
 "rows": [
-"nat:Q21",
+"nt:home",
 "nat:Q183",
 "decade:1980"
 ]
 },
 "2026-12-09": {
 "cols": [
-"club:Q18716",
-"club:Q1130849",
-"club:Q9617"
+"club:Q50602",
+"club:Q18747",
+"club:Q18656"
 ],
 "n": 62,
 "rows": [
-"abroad:Q142",
-"decade:1970",
-"abroad:Q31"
+"decade:1990",
+"abroad:Q96",
+"abroad:Q20"
 ]
 },
 "2026-12-10": {
 "cols": [
-"club:Q9617",
-"club:Q1130849",
-"club:Q18747"
+"club:Q18656",
+"club:Q18747",
+"club:Q50602"
 ],
 "n": 63,
 "rows": [
-"pos:gk",
-"abroad:Q38",
-"decade:1970"
+"nat:Q55",
+"abroad:Q20",
+"pos:mf"
 ]
 },
 "2026-12-11": {
 "cols": [
 "club:Q1130849",
-"club:Q5794",
-"club:Q18656"
+"club:Q50602",
+"club:Q18747"
 ],
 "n": 64,
 "rows": [
-"abroad:Q20",
-"pos:fw",
-"abroad:Q414"
+"pos:mf",
+"nt:home",
+"abroad:Q55"
 ]
 },
 "2026-12-12": {
 "cols": [
-"club:Q9617",
-"club:Q18741",
-"club:Q50602"
+"club:Q50602",
+"club:Q19444",
+"club:Q18656"
 ],
 "n": 65,
 "rows": [
-"abroad:Q20",
-"abroad:Q38",
-"decade:1980"
+"nt:home",
+"abroad:Q30",
+"nat:Q21"
 ]
 },
 "2026-12-13": {
@@ -859,28 +859,28 @@
 },
 "2026-12-14": {
 "cols": [
+"club:Q9617",
 "club:Q1130849",
-"club:Q18716",
-"club:Q18656"
+"club:Q18739"
 ],
 "n": 67,
 "rows": [
-"decade:2000",
-"abroad:Q148",
-"abroad:Q183"
+"pos:mf",
+"abroad:Q29",
+"nt:home"
 ]
 },
 "2026-12-15": {
 "cols": [
-"club:Q18656",
-"club:Q9616",
-"club:Q9617"
+"club:Q1130849",
+"club:Q18747",
+"club:Q50602"
 ],
 "n": 68,
 "rows": [
-"abroad:Q408",
-"decade:1970",
-"fclub:Q483020"
+"decade:1990",
+"pos:fw",
+"nt:home"
 ]
 },
 "2026-12-16": {
@@ -898,119 +898,119 @@
 },
 "2026-12-17": {
 "cols": [
+"club:Q50602",
 "club:Q9616",
-"club:Q9617",
-"club:Q50602"
+"club:Q1130849"
 ],
 "n": 70,
 "rows": [
-"abroad:Q38",
-"decade:1980",
-"abroad:Q39"
+"abroad:Q45",
+"nat:Q21",
+"pos:mf"
 ]
 },
 "2026-12-18": {
 "cols": [
-"club:Q5794",
-"club:Q50602",
-"club:Q9617"
+"club:Q9617",
+"club:Q18656",
+"club:Q5794"
 ],
 "n": 71,
 "rows": [
-"abroad:Q41",
-"pos:df",
-"decade:1980"
+"decade:1970",
+"fclub:Q2739",
+"abroad:Q43"
 ]
 },
 "2026-12-19": {
 "cols": [
-"club:Q9617",
-"club:Q18656",
-"club:Q18711"
+"club:Q18661",
+"club:Q50602",
+"club:Q18656"
 ],
 "n": 72,
 "rows": [
-"nat:Q34",
-"abroad:Q408",
-"abroad:Q142"
+"pos:mf",
+"nt:home",
+"decade:1980"
 ]
 },
 "2026-12-20": {
 "cols": [
-"club:Q18741",
+"club:Q18656",
 "club:Q9617",
-"club:Q18656"
+"club:Q19444"
 ],
 "n": 73,
 "rows": [
-"decade:1980",
-"abroad:Q38",
-"pos:mf"
+"decade:1990",
+"nat:Q21",
+"nt:home"
 ]
 },
 "2026-12-21": {
 "cols": [
+"club:Q9616",
 "club:Q9617",
-"club:Q5794",
-"club:Q1130849"
+"club:Q50602"
 ],
 "n": 74,
 "rows": [
-"abroad:Q851",
-"abroad:Q30",
-"pos:df"
+"decade:2000",
+"nt:home",
+"award:Q106634956"
 ]
 },
 "2026-12-22": {
 "cols": [
-"club:Q9617",
-"club:Q18747",
+"club:Q18716",
+"club:Q1130849",
 "club:Q50602"
 ],
 "n": 75,
 "rows": [
-"abroad:Q20",
-"abroad:Q183",
-"nat:Q25"
+"pos:mf",
+"fclub:Q180305",
+"nt:home"
 ]
 },
 "2026-12-23": {
 "cols": [
-"club:Q19453",
 "club:Q18656",
-"club:Q9617"
+"club:Q18741",
+"club:Q1130849"
 ],
 "n": 76,
 "rows": [
-"nat:Q21",
-"pos:df",
-"decade:1980"
+"nt:home",
+"nat:Q22",
+"pos:fw"
 ]
 },
 "2026-12-24": {
 "cols": [
-"club:Q50602",
-"club:Q18656",
-"club:Q9616"
+"club:Q19481",
+"club:Q9617",
+"club:Q18656"
 ],
 "n": 77,
 "rows": [
-"award:Q106634956",
-"abroad:Q38",
-"abroad:Q55"
+"nt:home",
+"decade:1980",
+"pos:gk"
 ]
 },
 "2026-12-25": {
 "cols": [
-"club:Q18656",
-"club:Q5794",
-"club:Q50602"
+"club:Q18711",
+"club:Q9617",
+"club:Q1130849"
 ],
 "n": 78,
 "rows": [
-"pos:mf",
-"fclub:Q2739",
-"nat:Q25"
+"abroad:Q155",
+"decade:1990",
+"nt:home"
 ]
 },
 "2026-12-26": {
@@ -1023,7 +1023,7 @@
 "rows": [
 "abroad:Q45",
 "abroad:Q20",
-"pos:fw"
+"nt:home"
 ]
 },
 "2026-12-27": {
@@ -1035,151 +1035,164 @@
 "n": 80,
 "rows": [
 "pos:df",
-"nat:Q21",
+"nt:home",
 "abroad:Q35"
 ]
 },
 "2026-12-28": {
 "cols": [
-"club:Q18716",
-"club:Q1130849",
-"club:Q9617"
+"club:Q50602",
+"club:Q9617",
+"club:Q9616"
 ],
 "n": 81,
 "rows": [
-"abroad:Q43",
-"abroad:Q41",
-"decade:1990"
+"abroad:Q30",
+"decade:2000",
+"abroad:Q212"
 ]
 },
 "2026-12-29": {
 "cols": [
-"club:Q50602",
-"club:Q18711",
-"club:Q1130849"
+"club:Q18656",
+"club:Q5794",
+"club:Q50602"
 ],
 "n": 82,
 "rows": [
-"decade:1990",
-"abroad:Q183",
-"abroad:Q29"
+"abroad:Q155",
+"abroad:Q38",
+"pos:mf"
 ]
 },
 "2026-12-30": {
 "cols": [
-"club:Q18656",
-"club:Q1130849",
-"club:Q18741"
+"club:Q50602",
+"club:Q18716",
+"club:Q9617"
 ],
 "n": 83,
 "rows": [
-"pos:mf",
-"abroad:Q142",
-"abroad:Q45"
+"decade:1990",
+"abroad:Q43",
+"pos:gk"
 ]
 },
 "2026-12-31": {
 "cols": [
-"club:Q18711",
 "club:Q1130849",
-"club:Q18656"
+"club:Q50602",
+"club:Q18741"
 ],
 "n": 84,
 "rows": [
-"abroad:Q20",
-"abroad:Q35",
-"decade:1970"
+"decade:1970",
+"abroad:Q235",
+"nt:home"
 ]
 },
 "2027-01-01": {
 "cols": [
-"club:Q9617",
-"club:Q5794",
-"club:Q50602"
+"club:Q9616",
+"club:Q1130849",
+"club:Q18656"
 ],
 "n": 85,
 "rows": [
-"pos:fw",
-"decade:1980",
-"abroad:Q29"
+"pos:mf",
+"nt:home",
+"abroad:Q41"
 ]
 },
 "2027-01-02": {
 "cols": [
-"club:Q9617",
 "club:Q18656",
-"club:Q9616"
+"club:Q18747",
+"club:Q50602"
 ],
 "n": 86,
 "rows": [
-"abroad:Q408",
-"abroad:Q30",
-"pos:fw"
+"abroad:Q31",
+"abroad:Q38",
+"decade:1980"
 ]
 },
 "2027-01-03": {
 "cols": [
 "club:Q1130849",
-"club:Q9617",
-"club:Q18747"
+"club:Q18741",
+"club:Q50602"
 ],
 "n": 87,
 "rows": [
-"pos:df",
-"abroad:Q846",
-"abroad:Q31"
+"abroad:Q55",
+"pos:fw",
+"nat:Q414"
 ]
 },
 "2027-01-04": {
 "cols": [
-"club:Q18656",
-"club:Q18661",
-"club:Q1130849"
+"club:Q1130849",
+"club:Q9617",
+"club:Q18747"
 ],
 "n": 88,
 "rows": [
-"pos:mf",
-"abroad:Q183",
-"abroad:Q31"
+"decade:1980",
+"abroad:Q31",
+"pos:gk"
 ]
 },
 "2027-01-05": {
 "cols": [
-"club:Q18736",
-"club:Q9617",
-"club:Q18656"
+"club:Q50602",
+"club:Q18656",
+"club:Q19500"
 ],
 "n": 89,
 "rows": [
-"decade:1990",
-"pos:df",
-"abroad:Q142"
+"pos:gk",
+"abroad:Q20",
+"abroad:Q38"
 ]
 },
 "2027-01-06": {
 "cols": [
-"club:Q9616",
+"club:Q50602",
 "club:Q9617",
-"club:Q18656"
+"club:Q5794"
 ],
 "n": 90,
 "rows": [
-"award:Q106634956",
-"pos:mf",
-"abroad:Q235"
+"pos:fw",
+"nt:home",
+"decade:1970"
 ]
 },
 "2027-01-07": {
 "cols": [
-"club:Q18716",
-"club:Q50602",
-"club:Q1130849"
+"club:Q18656",
+"club:Q9617",
+"club:Q18741"
 ],
 "n": 91,
 "rows": [
-"abroad:Q142",
-"abroad:Q148",
-"decade:1990"
+"nt:home",
+"abroad:Q38",
+"abroad:Q29"
+]
+},
+"2027-01-08": {
+"cols": [
+"club:Q18711",
+"club:Q9617",
+"club:Q1130849"
+],
+"n": 92,
+"rows": [
+"abroad:Q55",
+"pos:fw",
+"abroad:Q41"
 ]
 }
 }
