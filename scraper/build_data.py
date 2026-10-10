@@ -796,6 +796,7 @@ def build_data(raw, cfg):
     relabel_fclubs(data, cfg)
     clean_birthplaces(data, cfg)
     merge_countries(data)
+    add_regions(data, cfg)
     add_decades(data, cfg)
     add_members(data, cfg)
     apply_config(criteria, cfg)
@@ -841,6 +842,29 @@ def add_members(data, cfg):
             data["criteria"][cid]["m"] = sorted(m)
 
 
+# Regions for "played in Europe" / "played in the Gulf", built from the played-in-country rows.
+REGIONS = {
+    "europe": {"ar": "لعب في أوروبا", "en": "Played in Europe", "countries": {
+        "Q29", "Q38", "Q142", "Q183", "Q45", "Q55", "Q31", "Q43", "Q41", "Q39", "Q40", "Q145", "Q21",
+        "Q22", "Q25", "Q26", "Q159", "Q212", "Q35", "Q34", "Q20", "Q33", "Q213", "Q36", "Q218", "Q219",
+        "Q28", "Q224", "Q403", "Q215", "Q214", "Q229", "Q27", "Q189", "Q233", "Q37", "Q211", "Q191",
+        "Q236", "Q225", "Q221", "Q222", "Q184", "Q217", "Q32", "Q235", "Q347", "Q230", "Q399", "Q227"}},
+    "gulf": {"ar": "لعب في الخليج", "en": "Played in the Gulf", "countries": {
+        "Q851", "Q878", "Q846", "Q817", "Q842", "Q398"}},
+}
+
+
+def add_regions(data, cfg):
+    """'region:europe' etc.: every player of the played-in-country rows of that region."""
+    crit = data["criteria"]
+    for key, reg in REGIONS.items():
+        members = set()
+        for country in reg["countries"]:
+            members |= set((crit.get(f"abroad:{country}") or {}).get("m", []))
+        if len(members) >= cfg.get("min_abroad", 15):
+            crit[f"region:{key}"] = {"t": "region", "l": reg.get(cfg["lang"], reg["en"]), "m": sorted(members)}
+
+
 def add_decades(data, cfg):
     """'Born in the 1990s'-style rows, worked out from the birth years already in data.json."""
     names = TEXT[cfg["lang"]]["decade"]
@@ -882,7 +906,7 @@ def apply_config(criteria, cfg):
 # ---------------------------------------------------------------- grids
 
 WEIGHT = {"club": 3.0, "fclub": 0.6, "nt": 2.0, "nat": 0.8, "abroad": 0.9, "pos": 0.6, "award": 0.6,
-          "decade": 0.6, "bplace": 0.6, "coach": 0.6}
+          "decade": 0.6, "bplace": 0.6, "coach": 0.6, "region": 0.9}
 # How often each kind of row is picked (a kind is picked first, then one row of that kind),
 # so kinds with hundreds of entries (foreign clubs, birthplaces) don't crowd out the rest.
 ROW_TYPE_SHARE = {"nt": 2.0, "nat": 1.0, "abroad": 3.0, "pos": 1.5, "award": 0.5,
@@ -919,17 +943,31 @@ def top_club_ids(crit, players, cfg):
 ROW_TYPES = ("nt", "nat", "abroad", "pos", "award", "fclub", "decade", "bplace", "coach")
 
 
+COL_TYPES = ("club", "nt", "region")   # non-club columns only when other_cols lists them
+
+
 def layout_ok(rows, cols, crit):
-    if not all(crit[c]["t"] == "club" for c in cols):
+    if not all(crit[c]["t"] in COL_TYPES for c in cols):
+        return False
+    if set(rows) & set(cols):
         return False
     types = [crit[r]["t"] for r in rows]
-    return (all(t in ROW_TYPES for t in types) and types.count("pos") <= 1
+    if not (all(t in ROW_TYPES for t in types) and types.count("pos") <= 1
             and types.count("award") <= 1 and types.count("nat") <= 2 and types.count("abroad") <= 2
             and types.count("fclub") <= 1 and types.count("decade") <= 1
-            and types.count("bplace") <= 1 and types.count("coach") <= 1
-            # not "from Portugal" and "played in Portugal" in the same grid
-            and len({r.split(":", 1)[1] for r in rows if r.startswith(("nat:", "abroad:"))})
-                == sum(1 for r in rows if r.startswith(("nat:", "abroad:"))))
+            and types.count("bplace") <= 1 and types.count("coach") <= 1):
+        return False
+    # not "from Portugal" and "played in Portugal" in the same grid
+    places = [r.split(":", 1)[1] for r in rows if r.startswith(("nat:", "abroad:"))]
+    if len(set(places)) != len(places):
+        return False
+    # a "played in Europe" column doesn't go with "played in Spain" rows
+    for c in cols:
+        if c.startswith("region:"):
+            region = REGIONS.get(c.split(":", 1)[1], {}).get("countries", set())
+            if any(r.startswith("abroad:") and r.split(":", 1)[1] in region for r in rows):
+                return False
+    return True
 
 
 def fame_weights(crit, players):
@@ -978,7 +1016,8 @@ def make_grid(date, crit, sets, cfg, recent, weighting, top=(), known=None):
     others = [c for c in (cfg.get("other_cols") or []) if c in crit]
     # popular clubs are picked far more often than the rest
     if others:   # a hand-picked list: every club in it gets an equal chance
-        other_pool = [(c, 1.0) for c in others if c not in must]
+        nonclub = cfg.get("nonclub_col_weight", 0.25)   # national team / region columns now and then
+        other_pool = [(c, 1.0 if crit[c]["t"] == "club" else nonclub) for c in others if c not in must]
     else:        # any other league club, popular clubs far more often
         other_pool = [(c, w * (8 if c in top else 1)) for c, w in zip(ids, weights)
                       if crit[c]["t"] == "club" and c not in must]
@@ -1079,6 +1118,90 @@ def build_grids(data, cfg, existing, today, keep_future=True):
         recent.append(frozenset(g["rows"] + g["cols"]))
         day += dt.timedelta(days=1)
     return out
+
+
+# ---------------------------------------------------------------- "أهلاوي ولا زملكاوي؟"
+# A daily line-up of 11 well-known players in a 4-3-3; for each, guess: Ahly, Zamalek, both or neither.
+DUEL_SLOTS = ["gk", "df", "df", "df", "df", "mf", "mf", "mf", "fw", "fw", "fw"]
+DUEL_SHARE = {"ahly": 0.32, "zam": 0.32, "both": 0.18, "none": 0.18}
+
+
+def build_duel(data, cfg, existing, today):
+    """data/duel.json: {date: {"n": number, "p": [11 player ids, goalkeeper first]}}.
+    Past days and today are never changed; later days are kept while their players exist."""
+    duel = cfg.get("duel") or {}
+    crit, players = data["criteria"], data["players"]
+    ahly = set((crit.get(duel.get("ahly", "")) or {}).get("m", []))
+    zam = set((crit.get(duel.get("zamalek", "")) or {}).get("m", []))
+    if not ahly or not zam:
+        return None
+    min_links, born_from = duel.get("min_links", 8), duel.get("born_from", 1950)
+    pools = defaultdict(list)          # (position, category) -> player indexes, most famous first
+    for pos in ("gk", "df", "mf", "fw"):
+        for i in sorted((crit.get(f"pos:{pos}") or {}).get("m", [])):
+            p = players[i]
+            if p[3] < min_links or (p[5] and p[5] < born_from):
+                continue
+            cat = "both" if i in ahly and i in zam else "ahly" if i in ahly else "zam" if i in zam else "none"
+            pools[(pos, cat)].append(i)
+    ids = {p[0] for p in players}
+    start = dt.date.fromisoformat(duel.get("start_date", cfg["start_date"]))
+    end = today + dt.timedelta(days=cfg["days_ahead"])
+    out, recent = {}, []
+    day = start
+    while day <= end:
+        ds = day.isoformat()
+        old = existing.get(ds)
+        if old and (day <= today or all(q in ids for q in old["p"])):
+            out[ds] = old
+        elif day >= today:
+            rng = random.Random(f"duel:{cfg['salt']}:{ds}")
+            used = set(q for r in recent[-14:] for q in r)   # no player twice within two weeks
+            cats = list(DUEL_SHARE)
+            picked = []
+            # every kind of answer at least once a day, the rest by DUEL_SHARE
+            plan = cats + rng.choices(cats, [DUEL_SHARE[c] for c in cats], k=len(DUEL_SLOTS) - len(cats))
+            rng.shuffle(plan)
+            for slot, cat in zip(DUEL_SLOTS, plan):
+                order = [cat] + [c for c in rng.sample(cats, len(cats)) if c != cat]
+                choice = None
+                # a player not seen in the last two weeks, of the planned kind if possible;
+                # famous players far more likely (weight = Wikipedia articles squared)
+                for allow_repeat in (False, True):
+                    for c in order:
+                        pool = [i for i in pools[(slot, c)] if i not in picked
+                                and (allow_repeat or players[i][0] not in used)]
+                        if pool:
+                            choice = rng.choices(pool, [players[i][3] ** 2 for i in pool])[0]
+                            break
+                    if choice is not None:
+                        break
+                if choice is None:
+                    break
+                picked.append(choice)
+            if len(picked) == len(DUEL_SLOTS):
+                out[ds] = {"p": [players[i][0] for i in picked]}
+        if ds in out:
+            out[ds]["n"] = (day - start).days + 1
+            recent.append(out[ds]["p"])
+        day += dt.timedelta(days=1)
+    return out
+
+
+def write_duel(data, cfg, out_dir, today):
+    if not cfg.get("duel"):
+        return
+    path = os.path.join(out_dir, "duel.json")
+    try:
+        with open(path, encoding="utf-8") as f:
+            existing = json.load(f)
+    except (OSError, ValueError):
+        existing = {}
+    duel = build_duel(data, cfg, existing, today)
+    if duel:
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(duel, f, ensure_ascii=False, indent=0, sort_keys=True)
+        log(f"Ahly-or-Zamalek line-ups: {len(duel)} days")
 
 
 def cairo_today():
@@ -1562,6 +1685,7 @@ def run_league(name, cfg, args):
     with open(grids_path, "w", encoding="utf-8") as f:
         json.dump(grids, f, ensure_ascii=False, indent=0, sort_keys=True)
     log(f"Wrote {len(grids)} grids ({min(grids)} .. {max(grids)})")
+    write_duel(data, cfg, out_dir, today)
     return True
 
 
@@ -1574,6 +1698,7 @@ def regrid(name, cfg, args):
     relabel_fclubs(data, cfg)
     clean_birthplaces(data, cfg)
     merge_countries(data)
+    add_regions(data, cfg)
     add_decades(data, cfg)
     add_members(data, cfg)
     apply_config(data["criteria"], cfg)
@@ -1584,6 +1709,7 @@ def regrid(name, cfg, args):
     with open(os.path.join(out_dir, "grids.json"), "w", encoding="utf-8") as f:
         json.dump(grids, f, ensure_ascii=False, indent=0, sort_keys=True)
     log(f"{name}: {len(data['criteria'])} criteria, {len(grids)} grids rebuilt after {today}")
+    write_duel(data, cfg, out_dir, today)
 
 
 def main():

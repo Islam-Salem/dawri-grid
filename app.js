@@ -13,7 +13,9 @@
     window.GAME || {}
   );
   const TOTAL_GUESSES = 9;
+  const CONTACT = "islamspo@gmail.com";
   const LEAGUES = [
+    { id: "duel", href: "duel.html", label: "أهلي ولا زمالك؟", lang: "ar" },
     { id: "epl", href: "epl.html", label: "الدوري الإنجليزي", lang: "ar" },
     { id: "egypt", href: "./", label: "الدوري المصري", lang: "ar" },
   ];
@@ -23,7 +25,7 @@
     ar: {
       help: "طريقة اللعب", stats: "الإحصائيات", archive: "الشبكات السابقة", close: "إغلاق",
       loading: "جارٍ تحميل شبكة اليوم…",
-      edition: (n, d) => `الشبكة رقم ${n} · ${d}`,
+      edition: (n, d) => `الشبكة رقم ${String(n).replace(/\d/g, (x) => "٠١٢٣٤٥٦٧٨٩"[x])}، ${d}`,
       whatsapp: "واتساب",
       footLinks: '<a href="about.html">عن اللعبة</a> · <a href="privacy.html">الخصوصية</a> · <a href="credits.html">حقوق الصور</a>',
       guessesLeft: "محاولات متبقية",
@@ -323,6 +325,8 @@
         return `<span class="badge icon">${pitchIcon(c.id.split(":")[1])}</span>`;
       case "award":
         return `<span class="badge icon">${ICONS.trophy}</span>`;
+      case "region":
+        return `<span class="badge icon">${ICONS.globe}</span>`;
       case "decade":
         return `<span class="badge icon">${ICONS.cake}</span>`;
       case "bplace":
@@ -412,7 +416,7 @@
         </div>
       </div>
 
-      ${modal("m-answers", '<span class="pair" id="answers-q"></span>', '<p class="hint first" id="answers-count"></p><ul class="results answers" id="answers-list"></ul>')}
+      ${modal("m-answers", '<span class="pair" id="answers-q"></span>', '<p class="hint first" id="answers-count"></p><ul class="results answers" id="answers-list"></ul><p class="report"><a id="report-link" href="#">إبلاغ عن خطأ: لاعب صحيح لم يُقبل أو معلومة خاطئة</a></p>')}
       ${modal("m-stats", U.stats, '<div id="stats-body"></div>', UDIR)}
       ${modal("m-help", U.help, `<ul class="help">${U.helpItems.map((x) => `<li>${esc(x)}</li>`).join("")}</ul><p class="hint">${U.helpNote}</p>`, UDIR)}
       ${modal("m-archive", U.archive, '<ul class="archive" id="archive-list"></ul>', UDIR)}
@@ -755,6 +759,9 @@
       ].filter(Boolean).join(" · ");
       return `<li class="${p === mine ? "mine" : ""}">${photoHtml(p, 80)}<span class="who"><span class="who-name">${esc(name)}</span><span class="who-sub">${sub}</span></span></li>`;
     }).join("");
+    // report a mistake: an email with the grid and the square already filled in
+    const body = `${GAME.title} - الشبكة رقم ${grid.n} (${date})\nالخانة: ${crit[rowOf(i)].l} × ${crit[colOf(i)].l}\n\nاسم اللاعب والخطأ:\n`;
+    $("#report-link").href = `mailto:${CONTACT}?subject=${encodeURIComponent("خطأ في " + GAME.title)}&body=${encodeURIComponent(body)}`;
     openModal("#m-answers");
     $("#answers-list").scrollTop = 0;
   }

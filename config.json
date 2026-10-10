@@ -43,7 +43,10 @@
       "club:Q3048741",
       "club:Q1877396",
       "club:Q2084802",
-      "club:Q1329368"
+      "club:Q1329368",
+      "nt:home",
+      "region:europe",
+      "region:gulf"
     ],
     "add_members": {
       "nt:home": [
@@ -137,6 +140,13 @@
       "nat:Q948": [
         "Q2836275"
       ]
+    },
+    "duel": {
+      "ahly": "club:Q223566",
+      "zamalek": "club:Q286504",
+      "start_date": "2026-10-10",
+      "min_links": 10,
+      "born_from": 1950
     }
   },
   "epl": {
