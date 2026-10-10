@@ -942,3 +942,6 @@ html[dir="rtl"] .title { direction: rtl; }
 .choice.zam { background: #fff; box-shadow: inset 0 0 0 2px #C8102E, 0 3px 0 rgba(0, 0, 0, .2); }
 .choice.both { background: linear-gradient(270deg, #C8102E 50%, #fff 50%); box-shadow: inset 0 0 0 2px #C8102E, 0 3px 0 rgba(0, 0, 0, .2); }
 .choice.ahly:active, .choice.zam:active, .choice.both:active { transform: translateY(2px); }
+/* both: each crest centred on its own half (Ahly on the red half, Zamalek on the white) */
+.choice.both .pair-crests { position: absolute; inset: 0; display: grid; grid-template-columns: 1fr 1fr; place-items: center; direction: rtl; }
+.choice.both .pair-crests .choice-crest { width: 34px; height: 34px; margin: 0; }
