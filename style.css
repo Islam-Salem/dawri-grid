@@ -700,7 +700,7 @@ html[dir="rtl"] .title { direction: rtl; }
   .mast-actions { gap: 6px; }
   .edition { font-size: .78rem; }
   /* one line on every page, so the league buttons sit at the same height */
-  .title h1 { font-size: min(1.32rem, 4.9vw); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .title h1 { font-size: min(1.32rem, 4.2vw); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .board { padding: 12px 14px 8px; gap: 14px; }
   .slot, .sticker { aspect-ratio: 1 / 1; }
   .sticker-photo .ph.ini { font-size: 2rem; }
@@ -945,3 +945,23 @@ html[dir="rtl"] .title { direction: rtl; }
 /* both: each crest centred on its own half (Ahly on the red half, Zamalek on the white) */
 .choice.both .pair-crests { position: absolute; inset: 0; display: grid; grid-template-columns: 1fr 1fr; place-items: center; direction: rtl; }
 .choice.both .pair-crests .choice-crest { width: 34px; height: 34px; margin: 0; }
+/* neither: the two crests apart, one per half, faded and crossed out */
+.choice.none .pair-crests { position: absolute; inset: 0; display: grid; grid-template-columns: 1fr 1fr; place-items: center; direction: rtl; }
+.choice.none .pair-crests .choice-crest { width: 34px; height: 34px; margin: 0; }
+@media (max-width: 640px) {
+  .doc-top { flex-wrap: wrap; justify-content: center; }
+  .doc-top .brand { width: 100%; text-align: center; }
+  .doc-top nav { justify-content: center; gap: 6px; }
+  .doc-top nav a { padding: 5px 10px; font-size: .8rem; white-space: nowrap; }
+}
+@media (max-width: 340px) { .title h1 { font-size: 3.9vw; } }
+
+/* phones: the main game («أهلاوي ولا زملكاوي؟») alone on the top row, the two grids side by side under it */
+@media (max-width: 560px) {
+  .leagues, .doc-top nav { flex-wrap: wrap; }
+  .leagues::before, .doc-top nav::before { content: ""; flex-basis: 100%; order: 1; height: 0; }
+  .leagues a, .doc-top nav a { order: 2; }
+  .leagues a[data-id="duel"], .doc-top nav a[data-id="duel"] { order: 0; }
+  .leagues { row-gap: 6px; }
+}
+@media (max-width: 340px) { .doc-top nav { gap: 4px; } .doc-top nav a { padding: 5px 7px; font-size: .72rem; } }

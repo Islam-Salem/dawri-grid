@@ -14,10 +14,10 @@
   );
   const TOTAL_GUESSES = 9;
   const CONTACT = "islamspo@gmail.com";
-  const LEAGUES = [
-    { id: "duel", href: "duel.html", label: "أهلاوي ولا زملكاوي؟", lang: "ar" },
-    { id: "epl", href: "epl.html", label: "الدوري الإنجليزي", lang: "ar" },
-    { id: "egypt", href: "./", label: "الدوري المصري", lang: "ar" },
+  const LEAGUES = [   // left to right on screen; Arabic readers meet the right-most first
+    { id: "epl", href: "epl.html", label: "شبكة الدوري الإنجليزي", lang: "ar" },
+    { id: "egypt", href: "egypt.html", label: "شبكة الدوري المصري", lang: "ar" },
+    { id: "duel", href: "./", label: "أهلاوي ولا زملكاوي؟", lang: "ar" },
   ];
 
   // ---------------------------------------------------------------- text
@@ -355,7 +355,7 @@
   // ---------------------------------------------------------------- layout
   function shell() {
     const leagueLinks = LEAGUES.map((l) =>
-      `<a href="${GAME.root}${l.href}" lang="${l.lang}" dir="${l.lang === "ar" ? "rtl" : "ltr"}" class="${l.id === GAME.league ? "on" : ""}" ${l.id === GAME.league ? 'aria-current="page"' : ""}>${esc(l.label)}</a>`
+      `<a href="${GAME.root}${l.href}" data-id="${l.id}" lang="${l.lang}" dir="${l.lang === "ar" ? "rtl" : "ltr"}" class="${l.id === GAME.league ? "on" : ""}" ${l.id === GAME.league ? 'aria-current="page"' : ""}>${esc(l.label)}</a>`
     ).join("");
     const modal = (id, title, body, sheetAttrs = "") => `
       <div class="modal" id="${id}" hidden role="dialog" aria-modal="true" aria-labelledby="${id}-title">

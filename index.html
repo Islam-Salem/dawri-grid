@@ -6,16 +6,16 @@
 <!-- the design has its own colours: stop browsers' automatic dark mode (and the Dark Reader extension) from recolouring it -->
 <meta name="color-scheme" content="only light">
 <meta name="darkreader-lock">
-<title>شبكة الدوري المصري</title>
-<meta name="description" content="لعبة يومية: املأ الشبكة بلاعبين لعبوا في الدوري المصري">
+<title>أهلاوي ولا زملكاوي؟</title>
+<meta name="description" content="تشكيلة من ١١ لاعبًا كل يوم: لعب للأهلي ولا للزمالك ولا الاتنين ولا ولا واحد؟">
 <!-- link previews (WhatsApp, Facebook, X): change SITE address here when the domain changes -->
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="شبكة الدوري">
 <meta property="og:locale" content="ar_EG">
-<meta property="og:title" content="شبكة الدوري: الدوري المصري والدوري الإنجليزي">
-<meta property="og:description" content="اختبر معلوماتك الكروية في تحد جديد كل يوم، للدوري المصري والدوري الإنجليزي.">
+<meta property="og:title" content="أهلاوي ولا زملكاوي؟">
+<meta property="og:description" content="تشكيلة من ١١ لاعبًا كل يوم: لعب للأهلي ولا للزمالك ولا الاتنين ولا ولا واحد؟">
 <meta property="og:url" content="https://islam-salem.github.io/dawri-grid/">
-<meta property="og:image" content="https://islam-salem.github.io/dawri-grid/icons/og-site.png">
+<meta property="og:image" content="https://islam-salem.github.io/dawri-grid/icons/og-duel.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
@@ -26,11 +26,11 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Changa:wght@500;600;700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=27">
+<link rel="stylesheet" href="style.css?v=30">
 </head>
-<body>
+<body data-league="duel">
 <div id="app"></div>
-<script>window.GAME = { lang: "ar", root: "", data: "data/", key: "egrid", league: "egypt", title: "شبكة الدوري المصري" };</script>
-<script src="app.js?v=25"></script>
+<script>window.DUEL = { root: "", data: "data/", key: "duel", title: "أهلاوي ولا زملكاوي؟" };</script>
+<script src="duel.js?v=30"></script>
 </body>
 </html>

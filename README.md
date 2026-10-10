@@ -1,7 +1,8 @@
 # Football grids — شبكة الدوري المصري + Premier League Grid
 
-Daily 3×3 football grid games (like Immaculate Grid):
-- **Egyptian league** (Arabic) at the site root — data in `data/`
+Daily football games:
+- **«أهلاوي ولا زملكاوي؟»** at the site root (`index.html` + `duel.js`): a daily 4-3-3 line-up of 11 players, guess Ahly / Zamalek / both / neither — line-ups in `data/duel.json`
+- **Egyptian league** grid (Arabic) at `egypt.html` — data in `data/`
 - **Premier League** (Arabic labels, players shown in Arabic when Wikidata has a standard Arabic name, else English; Arabic search also finds English names by sound) at `epl.html` — data in `data/epl/`
 
 Both pages share `app.js` and `style.css`; each page sets `window.GAME` (language, data folder).
