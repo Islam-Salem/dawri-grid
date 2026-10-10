@@ -15,7 +15,7 @@
   const TOTAL_GUESSES = 9;
   const CONTACT = "islamspo@gmail.com";
   const LEAGUES = [
-    { id: "duel", href: "duel.html", label: "أهلي ولا زمالك؟", lang: "ar" },
+    { id: "duel", href: "duel.html", label: "أهلاوي ولا زملكاوي؟", lang: "ar" },
     { id: "epl", href: "epl.html", label: "الدوري الإنجليزي", lang: "ar" },
     { id: "egypt", href: "./", label: "الدوري المصري", lang: "ar" },
   ];
